@@ -1,0 +1,16 @@
+# ACL file for Malbouche MQTT broker
+
+# Backend service - full access
+user malbouche
+topic readwrite malbouche/#
+
+# ESP32 devices - device-specific access
+pattern read malbouche/devices/%c/command
+pattern write malbouche/devices/%c/status
+pattern write malbouche/devices/%c/response
+pattern write malbouche/devices/%c/heartbeat
+
+# Mobile clients - read-only access to status
+user mobile
+topic read malbouche/devices/+/status
+topic read malbouche/devices/+/response

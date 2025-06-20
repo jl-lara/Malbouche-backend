@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: malbouche-backend
+    env: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: FIREBASE_PROJECT_ID
+        fromDatabase:
+          name: malbouche-config
+          property: FIREBASE_PROJECT_ID
+      - key: FIREBASE_DB_URL
+        fromDatabase:
+          name: malbouche-config
+          property: FIREBASE_DB_URL
+      - key: FIREBASE_CREDENTIALS
+        fromDatabase:
+          name: malbouche-config
+          property: FIREBASE_CREDENTIALS
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MQTT_BROKER_URL
+        value: mqtt://localhost:1883
+
+databases:
+  - name: malbouche-config
+    databaseName: malbouche_config
+    user: malbouche_user
