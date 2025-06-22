@@ -1,32 +1,29 @@
 import express from 'express';
 import { 
   getAllUsers, 
+  createUser, 
   getUserById, 
   updateUser, 
-  deleteUser,
-  getUserDevices,
-  getUserEvents
+  deleteUser 
 } from '../controllers/usersController.js';
-import { validateUser } from '../middleware/validation.js';
+import { verifyToken, checkRole } from '../middlewares/auth.js';
+import { validateUser, validateId } from '../middlewares/validation.js';
 
 const router = express.Router();
 
-// GET /api/users - Get all users
-router.get('/', getAllUsers);
+// GET /api/users - Obtener todos los usuarios (solo admin)
+router.get('/', verifyToken, checkRole('admin'), getAllUsers);
 
-// GET /api/users/:id - Get user by ID
-router.get('/:id', getUserById);
+// POST /api/users - Crear nuevo usuario (solo admin)
+router.post('/', verifyToken, checkRole('admin'), validateUser, createUser);
 
-// PUT /api/users/:id - Update user
-router.put('/:id', validateUser, updateUser);
+// GET /api/users/:id - Obtener usuario por ID
+router.get('/:id', verifyToken, validateId, getUserById);
 
-// DELETE /api/users/:id - Delete user
-router.delete('/:id', deleteUser);
+// PUT /api/users/:id - Actualizar usuario
+router.put('/:id', verifyToken, validateId, validateUser, updateUser);
 
-// GET /api/users/:id/devices - Get user's devices
-router.get('/:id/devices', getUserDevices);
+// DELETE /api/users/:id - Eliminar usuario (solo admin)
+router.delete('/:id', verifyToken, checkRole('admin'), validateId, deleteUser);
 
-// GET /api/users/:id/events - Get user's events
-router.get('/:id/events', getUserEvents);
-
-export { router };
+export default router;

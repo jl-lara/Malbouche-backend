@@ -11,6 +11,10 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# Firebase credentials
+firebase-credentials.json
+serviceAccountKey.json
+
 # Logs
 logs/
 *.log
@@ -24,12 +28,46 @@ pids/
 # Coverage directory used by tools like istanbul
 coverage/
 
-# Firebase credentials (if using file-based approach)
-firebase-credentials.json
+# nyc test coverage
+.nyc_output/
 
-# MQTT data
-mosquitto/data/
-mosquitto/log/
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# next.js build output
+.next
+
+# Nuxt.js build output
+.nuxt
+
+# Vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # OS generated files
 .DS_Store
@@ -40,15 +78,6 @@ mosquitto/log/
 ehthumbs.db
 Thumbs.db
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Build outputs
+# Build directories
 dist/
 build/
-
-# Docker
-.dockerignore

@@ -1,208 +1,241 @@
-import { db } from '../firebase.js';
-import { logger } from '../utils/logger.js';
 import bcrypt from 'bcryptjs';
+import { db } from '../services/firebase.js';
+import { logger } from '../services/logger.js';
 
-export async function getAllUsers(req, res) {
+export const getAllUsers = async (req, res) => {
   try {
-    logger.info('👥 Getting all users...');
-    const snapshot = await db.ref('users').once('value');
-    const users = snapshot.val() || {};
+    logger.info('👥 Obteniendo todos los usuarios...');
     
-    // Remove sensitive data
-    const sanitizedUsers = Object.entries(users).reduce((acc, [id, user]) => {
-      acc[id] = {
-        id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        createdAt: user.createdAt,
-        lastLogin: user.lastLogin
-      };
-      return acc;
-    }, {});
+    const usersSnapshot = await db.collection('usuarios').get();
+    const users = [];
     
-    logger.info(`✅ ${Object.keys(users).length} users found`);
+    usersSnapshot.forEach(doc => {
+      const userData = doc.data();
+      // Remove sensitive data
+      delete userData.passwordHash;
+      users.push({
+        id: doc.id,
+        ...userData
+      });
+    });
+    
+    logger.info(`✅ ${users.length} usuarios encontrados`);
+    
     res.json({
       success: true,
-      data: sanitizedUsers,
-      count: Object.keys(users).length
+      data: users,
+      count: users.length
     });
   } catch (err) {
-    logger.error('❌ Error getting users:', err.message);
-    res.status(500).json({ 
+    logger.error('❌ Error obteniendo usuarios:', err.message);
+    res.status(500).json({
       success: false,
-      error: 'Error getting users', 
-      details: err.message 
+      error: 'Error obteniendo usuarios',
+      details: err.message
     });
   }
-}
+};
 
-export async function getUserById(req, res) {
+export const createUser = async (req, res) => {
   try {
-    const { id } = req.params;
-    logger.info(`👤 Getting user: ${id}`);
+    const { nombre, apellidos, correo, password, puesto = '', rol = 'usuario' } = req.body;
     
-    const snapshot = await db.ref(`users/${id}`).once('value');
-    if (!snapshot.exists()) {
-      return res.status(404).json({
+    logger.info(`👤 Creando usuario: ${correo}`);
+    
+    // Check if user already exists
+    const existingUser = await db.collection('usuarios')
+      .where('correo', '==', correo)
+      .get();
+    
+    if (!existingUser.empty) {
+      return res.status(409).json({
         success: false,
-        error: 'User not found'
+        error: 'El usuario ya existe'
       });
     }
     
-    const user = snapshot.val();
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 12);
     
-    // Remove sensitive data
-    const sanitizedUser = {
-      id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      createdAt: user.createdAt,
-      lastLogin: user.lastLogin
+    // Create user document
+    const userData = {
+      nombre,
+      apellidos,
+      correo,
+      passwordHash,
+      puesto,
+      rol,
+      fechaCreacion: new Date().toISOString()
     };
+    
+    const userRef = await db.collection('usuarios').add(userData);
+    
+    // Log the action
+    await db.collection('logs').add({
+      usuarioId: req.user?.uid || 'system',
+      accion: 'crear_usuario',
+      resultado: 'exitoso',
+      timestamp: new Date().toISOString(),
+      detalles: { usuarioCreado: userRef.id }
+    });
+    
+    logger.info(`✅ Usuario creado con ID: ${userRef.id}`);
+    
+    // Remove sensitive data from response
+    delete userData.passwordHash;
+    
+    res.status(201).json({
+      success: true,
+      message: 'Usuario creado exitosamente',
+      data: {
+        id: userRef.id,
+        ...userData
+      }
+    });
+  } catch (err) {
+    logger.error('❌ Error creando usuario:', err.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error creando usuario',
+      details: err.message
+    });
+  }
+};
+
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    logger.info(`👤 Obteniendo usuario: ${id}`);
+    
+    const userDoc = await db.collection('usuarios').doc(id).get();
+    
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuario no encontrado'
+      });
+    }
+    
+    const userData = userDoc.data();
+    // Remove sensitive data
+    delete userData.passwordHash;
     
     res.json({
       success: true,
-      data: sanitizedUser
+      data: {
+        id: userDoc.id,
+        ...userData
+      }
     });
   } catch (err) {
-    logger.error('❌ Error getting user:', err.message);
-    res.status(500).json({ 
+    logger.error('❌ Error obteniendo usuario:', err.message);
+    res.status(500).json({
       success: false,
-      error: 'Error getting user', 
-      details: err.message 
+      error: 'Error obteniendo usuario',
+      details: err.message
     });
   }
-}
+};
 
-export async function updateUser(req, res) {
+export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password } = req.body;
-    logger.info(`👤 Updating user: ${id}`);
+    const { nombre, apellidos, correo, password, puesto, rol } = req.body;
+    
+    logger.info(`👤 Actualizando usuario: ${id}`);
     
     // Check if user exists
-    const snapshot = await db.ref(`users/${id}`).once('value');
-    if (!snapshot.exists()) {
+    const userDoc = await db.collection('usuarios').doc(id).get();
+    
+    if (!userDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'User not found'
+        error: 'Usuario no encontrado'
       });
     }
     
-    const updateData = {
-      updatedAt: new Date().toISOString()
-    };
+    const updateData = {};
     
-    if (name) updateData.name = name;
-    if (email) updateData.email = email;
+    if (nombre) updateData.nombre = nombre;
+    if (apellidos) updateData.apellidos = apellidos;
+    if (correo) updateData.correo = correo;
+    if (puesto !== undefined) updateData.puesto = puesto;
+    if (rol) updateData.rol = rol;
     
     // Hash new password if provided
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 12);
     }
     
-    await db.ref(`users/${id}`).update(updateData);
+    await db.collection('usuarios').doc(id).update(updateData);
     
-    logger.info(`✅ User ${id} updated`);
-    res.json({ 
+    // Log the action
+    await db.collection('logs').add({
+      usuarioId: req.user?.uid || 'system',
+      accion: 'actualizar_usuario',
+      resultado: 'exitoso',
+      timestamp: new Date().toISOString(),
+      detalles: { usuarioActualizado: id }
+    });
+    
+    logger.info(`✅ Usuario ${id} actualizado`);
+    
+    res.json({
       success: true,
-      message: 'User updated successfully',
-      id
+      message: 'Usuario actualizado exitosamente',
+      data: { id }
     });
   } catch (err) {
-    logger.error('❌ Error updating user:', err.message);
-    res.status(500).json({ 
+    logger.error('❌ Error actualizando usuario:', err.message);
+    res.status(500).json({
       success: false,
-      error: 'Error updating user', 
-      details: err.message 
+      error: 'Error actualizando usuario',
+      details: err.message
     });
   }
-}
+};
 
-export async function deleteUser(req, res) {
+export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    logger.info(`🗑️ Deleting user: ${id}`);
+    
+    logger.info(`🗑️ Eliminando usuario: ${id}`);
     
     // Check if user exists
-    const snapshot = await db.ref(`users/${id}`).once('value');
-    if (!snapshot.exists()) {
+    const userDoc = await db.collection('usuarios').doc(id).get();
+    
+    if (!userDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'User not found'
+        error: 'Usuario no encontrado'
       });
     }
     
-    await db.ref(`users/${id}`).remove();
+    await db.collection('usuarios').doc(id).delete();
     
-    logger.info(`✅ User ${id} deleted`);
-    res.json({ 
-      success: true,
-      message: 'User deleted successfully',
-      id
+    // Log the action
+    await db.collection('logs').add({
+      usuarioId: req.user?.uid || 'system',
+      accion: 'eliminar_usuario',
+      resultado: 'exitoso',
+      timestamp: new Date().toISOString(),
+      detalles: { usuarioEliminado: id }
     });
-  } catch (err) {
-    logger.error('❌ Error deleting user:', err.message);
-    res.status(500).json({ 
-      success: false,
-      error: 'Error deleting user', 
-      details: err.message 
-    });
-  }
-}
-
-export async function getUserDevices(req, res) {
-  try {
-    const { id } = req.params;
-    logger.info(`📱 Getting devices for user: ${id}`);
     
-    const snapshot = await db.ref('devices').orderByChild('pairedUsers').once('value');
-    const allDevices = snapshot.val() || {};
-    
-    // Filter devices paired with this user
-    const userDevices = Object.entries(allDevices)
-      .filter(([_, device]) => device.pairedUsers && device.pairedUsers.includes(id))
-      .reduce((acc, [deviceId, device]) => {
-        acc[deviceId] = device;
-        return acc;
-      }, {});
+    logger.info(`✅ Usuario ${id} eliminado`);
     
     res.json({
       success: true,
-      data: userDevices,
-      count: Object.keys(userDevices).length
+      message: 'Usuario eliminado exitosamente',
+      data: { id }
     });
   } catch (err) {
-    logger.error('❌ Error getting user devices:', err.message);
-    res.status(500).json({ 
+    logger.error('❌ Error eliminando usuario:', err.message);
+    res.status(500).json({
       success: false,
-      error: 'Error getting user devices', 
-      details: err.message 
+      error: 'Error eliminando usuario',
+      details: err.message
     });
   }
-}
-
-export async function getUserEvents(req, res) {
-  try {
-    const { id } = req.params;
-    logger.info(`📅 Getting events for user: ${id}`);
-    
-    const snapshot = await db.ref('events').orderByChild('createdBy').equalTo(id).once('value');
-    const events = snapshot.val() || {};
-    
-    res.json({
-      success: true,
-      data: events,
-      count: Object.keys(events).length
-    });
-  } catch (err) {
-    logger.error('❌ Error getting user events:', err.message);
-    res.status(500).json({ 
-      success: false,
-      error: 'Error getting user events', 
-      details: err.message 
-    });
-  }
-}
+};

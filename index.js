@@ -3,30 +3,22 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
 
 // Import routes
-import { router as eventsRouter } from './routes/events.js';
-import { router as devicesRouter } from './routes/devices.js';
-import { router as usersRouter } from './routes/users.js';
-import { router as movementsRouter } from './routes/movements.js';
-import { router as authRouter } from './routes/auth.js';
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import movimientosRoutes from './routes/movimientos.js';
+import eventosRoutes from './routes/eventos.js';
 
 // Import middleware
-import { authMiddleware } from './middleware/auth.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import { logger } from './utils/logger.js';
-
-// Import services
-import { initializeWebSocket } from './services/websocket.js';
-import { initializeMQTT } from './services/mqtt.js';
+import { errorHandler } from './middlewares/errorHandler.js';
+import { logger } from './services/logger.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const server = createServer(app);
+const PORT = process.env.PORT || 3000;
 
 // Security middleware
 app.use(helmet({
@@ -38,7 +30,7 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: {
-    error: 'Too many requests from this IP, please try again later.'
+    error: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.'
   }
 });
 app.use('/api/', limiter);
@@ -48,7 +40,7 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Body parsing middleware
@@ -89,38 +81,32 @@ app.get('/', (req, res) => {
   res.json({
     name: 'Malbouche Backend API',
     version: '1.0.0',
-    description: 'Backend API para control de reloj analógico ESP32',
+    description: 'Backend API para control de reloj analógico ESP32 con Firestore',
     status: 'active',
     timestamp: new Date().toISOString(),
     endpoints: {
       auth: '/api/auth',
-      events: '/api/events',
-      devices: '/api/devices',
       users: '/api/users',
-      movements: '/api/movements',
+      movimientos: '/api/movimientos',
+      eventos: '/api/eventos',
       health: '/health',
       docs: '/docs'
-    },
-    websocket: {
-      url: `ws://localhost:${process.env.ESP32_WEBSOCKET_PORT || 8080}`,
-      description: 'Real-time communication with ESP32 devices'
     }
   });
 });
 
 // API Routes
-app.use('/api/auth', authRouter);
-app.use('/api/events', authMiddleware, eventsRouter);
-app.use('/api/devices', authMiddleware, devicesRouter);
-app.use('/api/users', authMiddleware, usersRouter);
-app.use('/api/movements', authMiddleware, movementsRouter);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/movimientos', movimientosRoutes);
+app.use('/api/eventos', eventosRoutes);
 
 // API documentation
 app.get('/docs', (req, res) => {
   res.json({
     title: 'Malbouche API Documentation',
     version: '1.0.0',
-    baseUrl: `http://localhost:${process.env.PORT || 3000}`,
+    baseUrl: `http://localhost:${PORT}`,
     authentication: {
       type: 'Bearer Token',
       header: 'Authorization: Bearer <token>',
@@ -128,36 +114,27 @@ app.get('/docs', (req, res) => {
     },
     endpoints: {
       'Authentication': {
-        'POST /api/auth/login': 'Login user',
-        'POST /api/auth/register': 'Register new user',
-        'POST /api/auth/refresh': 'Refresh access token'
-      },
-      'Events': {
-        'GET /api/events': 'Get all events',
-        'POST /api/events': 'Create new event',
-        'PUT /api/events/:id': 'Update event',
-        'DELETE /api/events/:id': 'Delete event',
-        'POST /api/events/:id/execute': 'Execute event immediately'
-      },
-      'Devices': {
-        'GET /api/devices': 'Get all devices',
-        'POST /api/devices': 'Register new device',
-        'PUT /api/devices/:id': 'Update device',
-        'DELETE /api/devices/:id': 'Remove device',
-        'POST /api/devices/:id/command': 'Send command to device',
-        'GET /api/devices/:id/status': 'Get device status'
-      },
-      'Movements': {
-        'GET /api/movements': 'Get all movements',
-        'POST /api/movements': 'Create movement',
-        'PUT /api/movements/:id': 'Update movement',
-        'DELETE /api/movements/:id': 'Delete movement'
+        'POST /api/auth/register': 'Registrar nuevo usuario',
+        'POST /api/auth/login': 'Iniciar sesión'
       },
       'Users': {
-        'GET /api/users': 'Get all users',
-        'GET /api/users/:id': 'Get user by ID',
-        'PUT /api/users/:id': 'Update user',
-        'DELETE /api/users/:id': 'Delete user'
+        'GET /api/users': 'Obtener todos los usuarios',
+        'POST /api/users': 'Crear nuevo usuario',
+        'GET /api/users/:id': 'Obtener usuario por ID',
+        'PUT /api/users/:id': 'Actualizar usuario',
+        'DELETE /api/users/:id': 'Eliminar usuario'
+      },
+      'Movimientos': {
+        'GET /api/movimientos': 'Obtener todos los movimientos',
+        'POST /api/movimientos': 'Crear nuevo movimiento',
+        'PUT /api/movimientos/:id': 'Actualizar movimiento',
+        'DELETE /api/movimientos/:id': 'Eliminar movimiento'
+      },
+      'Eventos': {
+        'GET /api/eventos': 'Obtener todos los eventos',
+        'POST /api/eventos': 'Crear nuevo evento',
+        'PUT /api/eventos/:id': 'Actualizar evento',
+        'DELETE /api/eventos/:id': 'Eliminar evento'
       }
     }
   });
@@ -170,55 +147,34 @@ app.use(errorHandler);
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
-    error: 'Endpoint not found',
+    error: 'Endpoint no encontrado',
     path: req.originalUrl,
     method: req.method,
     timestamp: new Date().toISOString()
   });
 });
 
-const PORT = process.env.PORT || 3000;
-const WS_PORT = process.env.ESP32_WEBSOCKET_PORT || 8080;
-
 // Start server
-server.listen(PORT, () => {
+app.listen(PORT, () => {
   logger.info('🚀 ================================');
   logger.info(`🚀 Malbouche Backend Server`);
-  logger.info(`🚀 Port: ${PORT}`);
-  logger.info(`🚀 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`🚀 Puerto: ${PORT}`);
+  logger.info(`🚀 Entorno: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`🚀 API URL: http://localhost:${PORT}`);
   logger.info(`🚀 Health Check: http://localhost:${PORT}/health`);
-  logger.info(`🚀 Documentation: http://localhost:${PORT}/docs`);
+  logger.info(`🚀 Documentación: http://localhost:${PORT}/docs`);
   logger.info('🚀 ================================');
-});
-
-// Initialize WebSocket server for ESP32 communication
-const wss = new WebSocketServer({ port: WS_PORT });
-initializeWebSocket(wss);
-
-// Initialize MQTT client for ESP32 communication
-initializeMQTT();
-
-// Import and start scheduler
-import('./jobs/scheduler.js').catch(err => {
-  logger.error('❌ Error loading scheduler:', err);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Process terminated');
-    process.exit(0);
-  });
+  logger.info('SIGTERM recibido, cerrando servidor...');
+  process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Process terminated');
-    process.exit(0);
-  });
+  logger.info('SIGINT recibido, cerrando servidor...');
+  process.exit(0);
 });
 
 export default app;
