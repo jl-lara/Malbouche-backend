@@ -4,9 +4,9 @@ import { logger } from '../services/logger.js';
 
 export const getAllUsers = async (req, res) => {
   try {
-    logger.info('👥 Obteniendo todos los usuarios...');
+    logger.info('👥 Getting all users...');
     
-    const usersSnapshot = await db.collection('usuarios').get();
+    const usersSnapshot = await db.collection('users').get();
     const users = [];
     
     usersSnapshot.forEach(doc => {
@@ -19,7 +19,7 @@ export const getAllUsers = async (req, res) => {
       });
     });
     
-    logger.info(`✅ ${users.length} usuarios encontrados`);
+    logger.info(`✅ ${users.length} users found`);
     
     res.json({
       success: true,
@@ -27,10 +27,10 @@ export const getAllUsers = async (req, res) => {
       count: users.length
     });
   } catch (err) {
-    logger.error('❌ Error obteniendo usuarios:', err.message);
+    logger.error('❌ Error getting users:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error obteniendo usuarios',
+      error: 'Error getting users',
       details: err.message
     });
   }
@@ -38,19 +38,19 @@ export const getAllUsers = async (req, res) => {
 
 export const createUser = async (req, res) => {
   try {
-    const { nombre, apellidos, correo, password, puesto = '', rol = 'usuario' } = req.body;
+    const { name, lastName, email, password, position = '', role = 'user' } = req.body;
     
-    logger.info(`👤 Creando usuario: ${correo}`);
+    logger.info(`👤 Creating user: ${email}`);
     
     // Check if user already exists
-    const existingUser = await db.collection('usuarios')
-      .where('correo', '==', correo)
+    const existingUser = await db.collection('users')
+      .where('email', '==', email)
       .get();
     
     if (!existingUser.empty) {
       return res.status(409).json({
         success: false,
-        error: 'El usuario ya existe'
+        error: 'User already exists'
       });
     }
     
@@ -59,44 +59,44 @@ export const createUser = async (req, res) => {
     
     // Create user document
     const userData = {
-      nombre,
-      apellidos,
-      correo,
+      name,
+      lastName,
+      email,
       passwordHash,
-      puesto,
-      rol,
-      fechaCreacion: new Date().toISOString()
+      position,
+      role,
+      createdAt: new Date().toISOString()
     };
     
-    const userRef = await db.collection('usuarios').add(userData);
+    const userRef = await db.collection('users').add(userData);
     
     // Log the action
     await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'crear_usuario',
-      resultado: 'exitoso',
+      userId: req.user?.uid || 'system',
+      action: 'create_user',
+      result: 'success',
       timestamp: new Date().toISOString(),
-      detalles: { usuarioCreado: userRef.id }
+      details: { userCreated: userRef.id }
     });
     
-    logger.info(`✅ Usuario creado con ID: ${userRef.id}`);
+    logger.info(`✅ User created with ID: ${userRef.id}`);
     
     // Remove sensitive data from response
     delete userData.passwordHash;
     
     res.status(201).json({
       success: true,
-      message: 'Usuario creado exitosamente',
+      message: 'User created successfully',
       data: {
         id: userRef.id,
         ...userData
       }
     });
   } catch (err) {
-    logger.error('❌ Error creando usuario:', err.message);
+    logger.error('❌ Error creating user:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error creando usuario',
+      error: 'Error creating user',
       details: err.message
     });
   }
@@ -106,14 +106,14 @@ export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    logger.info(`👤 Obteniendo usuario: ${id}`);
+    logger.info(`👤 Getting user: ${id}`);
     
-    const userDoc = await db.collection('usuarios').doc(id).get();
+    const userDoc = await db.collection('users').doc(id).get();
     
     if (!userDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'Usuario no encontrado'
+        error: 'User not found'
       });
     }
     
@@ -129,10 +129,10 @@ export const getUserById = async (req, res) => {
       }
     });
   } catch (err) {
-    logger.error('❌ Error obteniendo usuario:', err.message);
+    logger.error('❌ Error getting user:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error obteniendo usuario',
+      error: 'Error getting user',
       details: err.message
     });
   }
@@ -141,56 +141,56 @@ export const getUserById = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, apellidos, correo, password, puesto, rol } = req.body;
+    const { name, lastName, email, password, position, role } = req.body;
     
-    logger.info(`👤 Actualizando usuario: ${id}`);
+    logger.info(`👤 Updating user: ${id}`);
     
     // Check if user exists
-    const userDoc = await db.collection('usuarios').doc(id).get();
+    const userDoc = await db.collection('users').doc(id).get();
     
     if (!userDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'Usuario no encontrado'
+        error: 'User not found'
       });
     }
     
     const updateData = {};
     
-    if (nombre) updateData.nombre = nombre;
-    if (apellidos) updateData.apellidos = apellidos;
-    if (correo) updateData.correo = correo;
-    if (puesto !== undefined) updateData.puesto = puesto;
-    if (rol) updateData.rol = rol;
+    if (name) updateData.name = name;
+    if (lastName) updateData.lastName = lastName;
+    if (email) updateData.email = email;
+    if (position !== undefined) updateData.position = position;
+    if (role) updateData.role = role;
     
     // Hash new password if provided
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 12);
     }
     
-    await db.collection('usuarios').doc(id).update(updateData);
+    await db.collection('users').doc(id).update(updateData);
     
     // Log the action
     await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'actualizar_usuario',
-      resultado: 'exitoso',
+      userId: req.user?.uid || 'system',
+      action: 'update_user',
+      result: 'success',
       timestamp: new Date().toISOString(),
-      detalles: { usuarioActualizado: id }
+      details: { userUpdated: id }
     });
     
-    logger.info(`✅ Usuario ${id} actualizado`);
+    logger.info(`✅ User ${id} updated`);
     
     res.json({
       success: true,
-      message: 'Usuario actualizado exitosamente',
+      message: 'User updated successfully',
       data: { id }
     });
   } catch (err) {
-    logger.error('❌ Error actualizando usuario:', err.message);
+    logger.error('❌ Error updating user:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error actualizando usuario',
+      error: 'Error updating user',
       details: err.message
     });
   }
@@ -200,41 +200,41 @@ export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
     
-    logger.info(`🗑️ Eliminando usuario: ${id}`);
+    logger.info(`🗑️ Deleting user: ${id}`);
     
     // Check if user exists
-    const userDoc = await db.collection('usuarios').doc(id).get();
+    const userDoc = await db.collection('users').doc(id).get();
     
     if (!userDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'Usuario no encontrado'
+        error: 'User not found'
       });
     }
     
-    await db.collection('usuarios').doc(id).delete();
+    await db.collection('users').doc(id).delete();
     
     // Log the action
     await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'eliminar_usuario',
-      resultado: 'exitoso',
+      userId: req.user?.uid || 'system',
+      action: 'delete_user',
+      result: 'success',
       timestamp: new Date().toISOString(),
-      detalles: { usuarioEliminado: id }
+      details: { userDeleted: id }
     });
     
-    logger.info(`✅ Usuario ${id} eliminado`);
+    logger.info(`✅ User ${id} deleted`);
     
     res.json({
       success: true,
-      message: 'Usuario eliminado exitosamente',
+      message: 'User deleted successfully',
       data: { id }
     });
   } catch (err) {
-    logger.error('❌ Error eliminando usuario:', err.message);
+    logger.error('❌ Error deleting user:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error eliminando usuario',
+      error: 'Error deleting user',
       details: err.message
     });
   }
