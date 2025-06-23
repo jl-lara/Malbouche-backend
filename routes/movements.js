@@ -6,7 +6,7 @@ import {
   deleteMovement 
 } from '../controllers/movementsController.js';
 import { verifyToken } from '../middleware/auth.js';
-import { validateMovement, validateId } from '../middleware/validation.js';
+import { validateMovimiento, validateId } from '../middleware/validation.js';
 
 const router = express.Router();
 
@@ -14,10 +14,10 @@ const router = express.Router();
 router.get('/', verifyToken, getAllMovements);
 
 // POST /api/movements - Create new movement
-router.post('/', verifyToken, validateMovement, createMovement);
+router.post('/', verifyToken, validateMovimiento, createMovement);
 
 // PUT /api/movements/:id - Update movement
-router.put('/:id', verifyToken, validateId, validateMovement, updateMovement);
+router.put('/:id', verifyToken, validateId, validateMovimiento, updateMovement);
 
 // DELETE /api/movements/:id - Delete movement
 router.delete('/:id', verifyToken, validateId, deleteMovement);

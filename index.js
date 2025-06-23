@@ -10,10 +10,6 @@ import userRoutes from './routes/users.js';
 import movementsRoutes from './routes/movements.js';
 import eventsRoutes from './routes/events.js';
 
-<<<<<<< HEAD
-=======
-// Import middleware
->>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './services/logger.js';
 

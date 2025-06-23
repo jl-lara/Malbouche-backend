@@ -26,22 +26,22 @@
           "id": {
             "type": "string"
           },
-          "name": {
+          "nombre": {
             "type": "string"
           },
-          "lastName": {
+          "apellidos": {
             "type": "string"
           },
-          "email": {
+          "correo": {
             "type": "string",
             "format": "email"
           },
-          "position": {
+          "puesto": {
             "type": "string"
           },
-          "role": {
+          "rol": {
             "type": "string",
-            "enum": ["admin", "user", "guest"]
+            "enum": ["admin", "usuario", "visitante"]
           },
           "createdAt": {
             "type": "string",
@@ -55,19 +55,19 @@
           "id": {
             "type": "string"
           },
-          "name": {
+          "nombre": {
             "type": "string"
           },
-          "movementType": {
+          "tipoMovimiento": {
             "type": "string",
-            "enum": ["right", "left", "swing", "crazy", "normal", "custom"]
+            "enum": ["derecha", "izquierda", "columpiarse", "loco", "normal", "personalizado"]
           },
-          "speed": {
+          "velocidad": {
             "type": "integer",
             "minimum": 1,
             "maximum": 100
           },
-          "duration": {
+          "duracion": {
             "type": "integer",
             "minimum": 1,
             "maximum": 3600
@@ -80,29 +80,29 @@
           "id": {
             "type": "string"
           },
-          "eventName": {
+          "nombreEvento": {
             "type": "string"
           },
-          "startTime": {
+          "horaInicio": {
             "type": "string",
             "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
           },
-          "endTime": {
+          "horaFin": {
             "type": "string",
             "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
           },
-          "weekDays": {
+          "diasSemana": {
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+              "enum": ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
             }
           },
-          "movementType": {
+          "tipoMovimiento": {
             "type": "string",
-            "enum": ["right", "left", "swing", "crazy", "normal", "custom"]
+            "enum": ["derecha", "izquierda", "columpiarse", "loco", "normal", "personalizado"]
           },
-          "active": {
+          "activo": {
             "type": "boolean"
           }
         }
@@ -120,15 +120,15 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "lastName", "email", "password"],
+                "required": ["nombre", "apellidos", "correo", "password"],
                 "properties": {
-                  "name": {
+                  "nombre": {
                     "type": "string"
                   },
-                  "lastName": {
+                  "apellidos": {
                     "type": "string"
                   },
-                  "email": {
+                  "correo": {
                     "type": "string",
                     "format": "email"
                   },
@@ -136,7 +136,7 @@
                     "type": "string",
                     "minLength": 6
                   },
-                  "position": {
+                  "puesto": {
                     "type": "string"
                   }
                 }
@@ -167,9 +167,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["email", "password"],
+                "required": ["correo", "password"],
                 "properties": {
-                  "email": {
+                  "correo": {
                     "type": "string",
                     "format": "email"
                   },
