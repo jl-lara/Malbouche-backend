@@ -1,7 +1,11 @@
 import { logger } from '../services/logger.js';
 
 export const errorHandler = (err, req, res, next) => {
+<<<<<<< HEAD
   logger.error('🚨 Error no manejado:', {
+=======
+  logger.error('🚨 Unhandled error:', {
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
     error: err.message,
     stack: err.stack,
     url: req.url,
@@ -12,11 +16,16 @@ export const errorHandler = (err, req, res, next) => {
 
   // Default error response
   let statusCode = 500;
+<<<<<<< HEAD
   let message = 'Error interno del servidor';
+=======
+  let message = 'Internal server error';
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
 
   // Handle specific error types
   if (err.name === 'ValidationError') {
     statusCode = 400;
+<<<<<<< HEAD
     message = 'Error de validación';
   } else if (err.name === 'UnauthorizedError') {
     statusCode = 401;
@@ -30,6 +39,21 @@ export const errorHandler = (err, req, res, next) => {
   } else if (err.name === 'ConflictError') {
     statusCode = 409;
     message = 'Conflicto';
+=======
+    message = 'Validation error';
+  } else if (err.name === 'UnauthorizedError') {
+    statusCode = 401;
+    message = 'Unauthorized';
+  } else if (err.name === 'ForbiddenError') {
+    statusCode = 403;
+    message = 'Forbidden';
+  } else if (err.name === 'NotFoundError') {
+    statusCode = 404;
+    message = 'Not found';
+  } else if (err.name === 'ConflictError') {
+    statusCode = 409;
+    message = 'Conflict';
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
   }
 
   // Send error response
@@ -53,28 +77,44 @@ export class ValidationError extends Error {
 }
 
 export class UnauthorizedError extends Error {
+<<<<<<< HEAD
   constructor(message = 'No autorizado') {
+=======
+  constructor(message = 'Unauthorized') {
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
     super(message);
     this.name = 'UnauthorizedError';
   }
 }
 
 export class ForbiddenError extends Error {
+<<<<<<< HEAD
   constructor(message = 'Prohibido') {
+=======
+  constructor(message = 'Forbidden') {
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
     super(message);
     this.name = 'ForbiddenError';
   }
 }
 
 export class NotFoundError extends Error {
+<<<<<<< HEAD
   constructor(message = 'No encontrado') {
+=======
+  constructor(message = 'Not found') {
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
     super(message);
     this.name = 'NotFoundError';
   }
 }
 
 export class ConflictError extends Error {
+<<<<<<< HEAD
   constructor(message = 'Conflicto') {
+=======
+  constructor(message = 'Conflict') {
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
     super(message);
     this.name = 'ConflictError';
   }

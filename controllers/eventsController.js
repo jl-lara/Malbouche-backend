@@ -3,6 +3,7 @@ import { logger } from '../services/logger.js';
 
 export const getAllEvents = async (req, res) => {
   try {
+<<<<<<< HEAD
     logger.info('📅 Obteniendo todos los eventos...');
     
     const eventosSnapshot = await db.collection('eventos').get();
@@ -10,11 +11,21 @@ export const getAllEvents = async (req, res) => {
     
     eventosSnapshot.forEach(doc => {
       eventos.push({
+=======
+    logger.info('📅 Getting all events...');
+    
+    const eventsSnapshot = await db.collection('events').get();
+    const events = [];
+    
+    eventsSnapshot.forEach(doc => {
+      events.push({
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
         id: doc.id,
         ...doc.data()
       });
     });
     
+<<<<<<< HEAD
     logger.info(`✅ ${eventos.length} eventos encontrados`);
     
     res.json({
@@ -27,6 +38,20 @@ export const getAllEvents = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Error obteniendo eventos',
+=======
+    logger.info(`✅ ${events.length} events found`);
+    
+    res.json({
+      success: true,
+      data: events,
+      count: events.length
+    });
+  } catch (err) {
+    logger.error('❌ Error getting events:', err.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error getting events',
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
       details: err.message
     });
   }
@@ -34,6 +59,7 @@ export const getAllEvents = async (req, res) => {
 
 export const createEvent = async (req, res) => {
   try {
+<<<<<<< HEAD
     const { nombreEvento, horaInicio, horaFin, diasSemana, tipoMovimiento } = req.body;
     
     logger.info(`📅 Creando evento: ${nombreEvento}`);
@@ -84,6 +110,58 @@ export const createEvent = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Error creando evento',
+=======
+    const { eventName, startTime, endTime, weekDays, movementType } = req.body;
+    
+    logger.info(`📅 Creating event: ${eventName}`);
+    
+    // Validate time format
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(startTime) || !timeRegex.test(endTime)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid time format. Use HH:MM'
+      });
+    }
+    
+    const eventData = {
+      eventName,
+      startTime,
+      endTime,
+      weekDays,
+      movementType,
+      createdAt: new Date().toISOString(),
+      createdBy: req.user?.uid || 'system',
+      active: true
+    };
+    
+    const eventRef = await db.collection('events').add(eventData);
+    
+    // Log the action
+    await db.collection('logs').add({
+      userId: req.user?.uid || 'system',
+      action: 'create_event',
+      result: 'success',
+      timestamp: new Date().toISOString(),
+      details: { eventCreated: eventRef.id }
+    });
+    
+    logger.info(`✅ Event created with ID: ${eventRef.id}`);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Event created successfully',
+      data: {
+        id: eventRef.id,
+        ...eventData
+      }
+    });
+  } catch (err) {
+    logger.error('❌ Error creating event:', err.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error creating event',
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
       details: err.message
     });
   }
@@ -92,6 +170,7 @@ export const createEvent = async (req, res) => {
 export const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
+<<<<<<< HEAD
     const { nombreEvento, horaInicio, horaFin, diasSemana, tipoMovimiento, activo } = req.body;
     
     logger.info(`📅 Actualizando evento: ${id}`);
@@ -103,11 +182,25 @@ export const updateEvent = async (req, res) => {
       return res.status(404).json({
         success: false,
         error: 'Evento no encontrado'
+=======
+    const { eventName, startTime, endTime, weekDays, movementType, active } = req.body;
+    
+    logger.info(`📅 Updating event: ${id}`);
+    
+    // Check if event exists
+    const eventDoc = await db.collection('events').doc(id).get();
+    
+    if (!eventDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Event not found'
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
       });
     }
     
     const updateData = {};
     
+<<<<<<< HEAD
     if (nombreEvento) updateData.nombreEvento = nombreEvento;
     if (horaInicio) {
       const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -158,6 +251,58 @@ export const updateEvent = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Error actualizando evento',
+=======
+    if (eventName) updateData.eventName = eventName;
+    if (startTime) {
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(startTime)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid start time format. Use HH:MM'
+        });
+      }
+      updateData.startTime = startTime;
+    }
+    if (endTime) {
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(endTime)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid end time format. Use HH:MM'
+        });
+      }
+      updateData.endTime = endTime;
+    }
+    if (weekDays) updateData.weekDays = weekDays;
+    if (movementType) updateData.movementType = movementType;
+    if (active !== undefined) updateData.active = active;
+    
+    updateData.updatedAt = new Date().toISOString();
+    
+    await db.collection('events').doc(id).update(updateData);
+    
+    // Log the action
+    await db.collection('logs').add({
+      userId: req.user?.uid || 'system',
+      action: 'update_event',
+      result: 'success',
+      timestamp: new Date().toISOString(),
+      details: { eventUpdated: id }
+    });
+    
+    logger.info(`✅ Event ${id} updated`);
+    
+    res.json({
+      success: true,
+      message: 'Event updated successfully',
+      data: { id, ...updateData }
+    });
+  } catch (err) {
+    logger.error('❌ Error updating event:', err.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error updating event',
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
       details: err.message
     });
   }
@@ -167,6 +312,7 @@ export const deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
     
+<<<<<<< HEAD
     logger.info(`🗑️ Eliminando evento: ${id}`);
     
     // Check if event exists
@@ -206,3 +352,44 @@ export const deleteEvent = async (req, res) => {
     });
   }
 };
+=======
+    logger.info(`🗑️ Deleting event: ${id}`);
+    
+    // Check if event exists
+    const eventDoc = await db.collection('events').doc(id).get();
+    
+    if (!eventDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Event not found'
+      });
+    }
+    
+    await db.collection('events').doc(id).delete();
+    
+    // Log the action
+    await db.collection('logs').add({
+      userId: req.user?.uid || 'system',
+      action: 'delete_event',
+      result: 'success',
+      timestamp: new Date().toISOString(),
+      details: { eventDeleted: id }
+    });
+    
+    logger.info(`✅ Event ${id} deleted`);
+    
+    res.json({
+      success: true,
+      message: 'Event deleted successfully',
+      data: { id }
+    });
+  } catch (err) {
+    logger.error('❌ Error deleting event:', err.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error deleting event',
+      details: err.message
+    });
+  }
+};
+>>>>>>> d71f8d772e7f643a781bf6af4778ae620c91d75a
