@@ -10,8 +10,7 @@ import userRoutes from './routes/users.js';
 import movimientosRoutes from './routes/movimientos.js';
 import eventosRoutes from './routes/eventos.js';
 
-// Import middleware
-import { errorHandler } from './middlewares/errorHandler.js';
+import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './services/logger.js';
 
 // Load environment variables

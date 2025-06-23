@@ -1,7 +1,7 @@
 import { db } from '../services/firebase.js';
 import { logger } from '../services/logger.js';
 
-export const getAllEventos = async (req, res) => {
+export const getAllEvents = async (req, res) => {
   try {
     logger.info('📅 Obteniendo todos los eventos...');
     
@@ -32,7 +32,7 @@ export const getAllEventos = async (req, res) => {
   }
 };
 
-export const createEvento = async (req, res) => {
+export const createEvent = async (req, res) => {
   try {
     const { nombreEvento, horaInicio, horaFin, diasSemana, tipoMovimiento } = req.body;
     
@@ -89,7 +89,7 @@ export const createEvento = async (req, res) => {
   }
 };
 
-export const updateEvento = async (req, res) => {
+export const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
     const { nombreEvento, horaInicio, horaFin, diasSemana, tipoMovimiento, activo } = req.body;
@@ -163,7 +163,7 @@ export const updateEvento = async (req, res) => {
   }
 };
 
-export const deleteEvento = async (req, res) => {
+export const deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
     

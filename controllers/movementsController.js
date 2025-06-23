@@ -1,7 +1,7 @@
 import { db } from '../services/firebase.js';
 import { logger } from '../services/logger.js';
 
-export const getAllMovimientos = async (req, res) => {
+export const getAllMovements = async (req, res) => {
   try {
     logger.info('🎭 Obteniendo todos los movimientos...');
     
@@ -32,7 +32,7 @@ export const getAllMovimientos = async (req, res) => {
   }
 };
 
-export const createMovimiento = async (req, res) => {
+export const createMovement = async (req, res) => {
   try {
     const { nombre, tipoMovimiento, velocidad, duracion } = req.body;
     
@@ -78,7 +78,7 @@ export const createMovimiento = async (req, res) => {
   }
 };
 
-export const updateMovimiento = async (req, res) => {
+export const updateMovement = async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre, tipoMovimiento, velocidad, duracion } = req.body;
@@ -132,7 +132,7 @@ export const updateMovimiento = async (req, res) => {
   }
 };
 
-export const deleteMovimiento = async (req, res) => {
+export const deleteMovement = async (req, res) => {
   try {
     const { id } = req.params;
     
