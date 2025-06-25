@@ -206,7 +206,8 @@
                   }
                 }
               }
-            }
+            },
+            "x-postman-tests": "const data = pm.response.json();\nif (data.token) {\n    pm.collectionVariables.unset(\"token\"); // Opcional: limpia la variable de colección\n    pm.environment.set(\"token\", data.token);\n}"
           },
           "401": {
             "description": "Credenciales inválidas"
@@ -258,7 +259,31 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Usuario"
+                "type": "object",
+                "required": ["nombre", "apellidos", "correo", "password"],
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "apellidos": {
+                    "type": "string"
+                  },
+                  "correo": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6
+                  },
+                  "puesto": {
+                    "type": "string"
+                  },
+                  "rol": {
+                    "type": "string",
+                    "enum": ["admin", "usuario", "visitante"]
+                  }
+                }
               }
             }
           }
@@ -279,14 +304,126 @@
         }
       }
     },
-    "/movimientos": {
+    "/users/{id}": {
       "get": {
-        "summary": "Obtener todos los movimientos",
-        "tags": ["Movimientos"],
+        "summary": "Obtener usuario por ID",
+        "tags": ["Users"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID del usuario",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuario encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autorizado"
+          },
+          "403": {
+            "description": "Permisos insuficientes"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar usuario",
+        "tags": ["Users"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID del usuario",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Usuario"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario actualizado exitosamente"
+          },
+          "400": {
+            "description": "Errores de validación"
+          },
+          "401": {
+            "description": "No autorizado"
+          },
+          "403": {
+            "description": "Permisos insuficientes"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar usuario",
+        "tags": ["Users"],
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "ID del usuario",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuario eliminado exitosamente"
+          },
+          "401": {
+            "description": "No autorizado"
+          },
+          "403": {
+            "description": "Permisos insuficientes"
+          },
+          "404": {
+            "description": "Usuario no encontrado"
+          }
+        }
+      }
+    },
+    "/movements": {
+      "get": {
+        "summary": "Get all movements",
+        "tags": ["Movements"],
         "security": [{"bearerAuth": []}],
         "responses": {
           "200": {
-            "description": "Lista de movimientos",
+            "description": "List of movements",
             "content": {
               "application/json": {
                 "schema": {
@@ -307,13 +444,13 @@
             }
           },
           "401": {
-            "description": "No autorizado"
+            "description": "Unauthorized"
           }
         }
       },
       "post": {
-        "summary": "Crear nuevo movimiento",
-        "tags": ["Movimientos"],
+        "summary": "Create new movement",
+        "tags": ["Movements"],
         "security": [{"bearerAuth": []}],
         "requestBody": {
           "required": true,
@@ -327,25 +464,25 @@
         },
         "responses": {
           "201": {
-            "description": "Movimiento creado exitosamente"
+            "description": "Movement created successfully"
           },
           "400": {
-            "description": "Errores de validación"
+            "description": "Validation errors"
           },
           "401": {
-            "description": "No autorizado"
+            "description": "Unauthorized"
           }
         }
       }
     },
-    "/eventos": {
+    "/events": {
       "get": {
-        "summary": "Obtener todos los eventos",
-        "tags": ["Eventos"],
+        "summary": "Get all events",
+        "tags": ["Events"],
         "security": [{"bearerAuth": []}],
         "responses": {
           "200": {
-            "description": "Lista de eventos",
+            "description": "List of events",
             "content": {
               "application/json": {
                 "schema": {
@@ -366,13 +503,13 @@
             }
           },
           "401": {
-            "description": "No autorizado"
+            "description": "Unauthorized"
           }
         }
       },
       "post": {
-        "summary": "Crear nuevo evento",
-        "tags": ["Eventos"],
+        "summary": "Create new event",
+        "tags": ["Events"],
         "security": [{"bearerAuth": []}],
         "requestBody": {
           "required": true,
@@ -386,13 +523,13 @@
         },
         "responses": {
           "201": {
-            "description": "Evento creado exitosamente"
+            "description": "Event created successfully"
           },
           "400": {
-            "description": "Errores de validación"
+            "description": "Validation errors"
           },
           "401": {
-            "description": "No autorizado"
+            "description": "Unauthorized"
           }
         }
       }

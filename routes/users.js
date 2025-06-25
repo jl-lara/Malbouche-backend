@@ -6,8 +6,8 @@ import {
   updateUser, 
   deleteUser 
 } from '../controllers/usersController.js';
-import { verifyToken, checkRole } from '../middlewares/auth.js';
-import { validateUser, validateId } from '../middlewares/validation.js';
+import { verifyToken, checkRole } from '../middleware/auth.js';
+import { validateUser, validateId } from '../middleware/validation.js';
 
 const router = express.Router();
 

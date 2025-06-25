@@ -21,7 +21,7 @@ export const verifyToken = async (req, res, next) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     
     // Get user data from Firestore
-    const userDoc = await db.collection('users').doc(decoded.uid).get();
+    const userDoc = await db.collection('usuarios').doc(decoded.uid).get();
     
     if (!userDoc.exists) {
       return res.status(401).json({

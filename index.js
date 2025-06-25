@@ -7,9 +7,6 @@ import dotenv from 'dotenv';
 // Import routes
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
-import movimientosRoutes from './routes/movimientos.js';
-import eventosRoutes from './routes/eventos.js';
-
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './services/logger.js';
 
@@ -97,8 +94,21 @@ app.get('/', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/movimientos', movimientosRoutes);
-app.use('/api/eventos', eventosRoutes);
+import movimientosRoutes from './routes/movements.js';
+
+app.use('/api/movements', movimientosRoutes);
+import eventsRoutes from './routes/events.js';
+
+app.use('/api/events', eventsRoutes);
+/*
+// app.use('/api/eventos', eventosRoutes);
+*/
+
+/*
+// Duplicate imports removed
+// import movimientosRoutes from './routes/movements.js';
+// import eventsRoutes from './routes/events.js';
+*/
 
 // API documentation
 app.get('/docs', (req, res) => {
@@ -113,27 +123,27 @@ app.get('/docs', (req, res) => {
     },
     endpoints: {
       'Authentication': {
-        'POST /api/auth/register': 'Registrar nuevo usuario',
-        'POST /api/auth/login': 'Iniciar sesión'
+        'POST /api/auth/register': 'Register new user',
+        'POST /api/auth/login': 'Login'
       },
       'Users': {
-        'GET /api/users': 'Obtener todos los usuarios',
-        'POST /api/users': 'Crear nuevo usuario',
-        'GET /api/users/:id': 'Obtener usuario por ID',
-        'PUT /api/users/:id': 'Actualizar usuario',
-        'DELETE /api/users/:id': 'Eliminar usuario'
+        'GET /api/users': 'Get all users',
+        'POST /api/users': 'Create new user',
+        'GET /api/users/:id': 'Get user by ID',
+        'PUT /api/users/:id': 'Update user',
+        'DELETE /api/users/:id': 'Delete user'
       },
-      'Movimientos': {
-        'GET /api/movimientos': 'Obtener todos los movimientos',
-        'POST /api/movimientos': 'Crear nuevo movimiento',
-        'PUT /api/movimientos/:id': 'Actualizar movimiento',
-        'DELETE /api/movimientos/:id': 'Eliminar movimiento'
+      'Movements': {
+        'GET /api/movements': 'Get all movements',
+        'POST /api/movements': 'Create new movement',
+        'PUT /api/movements/:id': 'Update movement',
+        'DELETE /api/movements/:id': 'Delete movement'
       },
-      'Eventos': {
-        'GET /api/eventos': 'Obtener todos los eventos',
-        'POST /api/eventos': 'Crear nuevo evento',
-        'PUT /api/eventos/:id': 'Actualizar evento',
-        'DELETE /api/eventos/:id': 'Eliminar evento'
+      'Events': {
+        'GET /api/events': 'Get all events',
+        'POST /api/events': 'Create new event',
+        'PUT /api/events/:id': 'Update event',
+        'DELETE /api/events/:id': 'Delete event'
       }
     }
   });

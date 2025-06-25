@@ -6,7 +6,8 @@ import {
   deleteEvent 
 } from '../controllers/eventsController.js';
 import { verifyToken } from '../middleware/auth.js';
-import { validateEvento, validateId } from '../middleware/validation.js';
+import { validateEvento } from '../middleware/validation.js';
+import { validateId } from '../middleware/validation.js';
 
 const router = express.Router();
 
