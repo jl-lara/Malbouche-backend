@@ -8,19 +8,19 @@ const JWT_EXPIRES_IN = '24h';
 
 export const register = async (req, res) => {
   try {
-    const { name, lastName, email, password, position = '' } = req.body;
+    const { nombre, apellidos, correo, password, puesto = '' } = req.body;
     
-    logger.info(`📝 Registration attempt for: ${email}`);
+    logger.info(`📝 Intento de registro para: ${correo}`);
     
     // Check if user already exists
-    const existingUser = await db.collection('users')
-      .where('email', '==', email)
+    const existingUser = await db.collection('usuarios')
+      .where('correo', '==', correo)
       .get();
     
     if (!existingUser.empty) {
       return res.status(409).json({
         success: false,
-        error: 'User already exists'
+        error: 'El usuario ya existe'
       });
     }
     
@@ -29,44 +29,44 @@ export const register = async (req, res) => {
     
     // Create user document
     const userData = {
-      name,
-      lastName,
-      email,
+      nombre,
+      apellidos,
+      correo,
       passwordHash,
-      position,
-      role: 'user', // Default role
-      createdAt: new Date().toISOString()
+      puesto,
+      rol: 'usuario', // Default role
+      fechaCreacion: new Date().toISOString()
     };
     
-    const userRef = await db.collection('users').add(userData);
+    const userRef = await db.collection('usuarios').add(userData);
     
     // Log the action
     await db.collection('logs').add({
-      userId: userRef.id,
-      action: 'register',
-      result: 'success',
+      usuarioId: userRef.id,
+      accion: 'registro',
+      resultado: 'exitoso',
       timestamp: new Date().toISOString()
     });
     
-    logger.info(`✅ User ${email} registered successfully`);
+    logger.info(`✅ Usuario ${correo} registrado exitosamente`);
     
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: 'Usuario registrado exitosamente',
       data: {
         id: userRef.id,
-        name,
-        lastName,
-        email,
-        position,
-        role: 'user'
+        nombre,
+        apellidos,
+        correo,
+        puesto,
+        rol: 'usuario'
       }
     });
   } catch (err) {
-    logger.error('❌ Error during registration:', err.message);
+    logger.error('❌ Error durante el registro:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Registration error',
+      error: 'Error en el registro',
       details: err.message
     });
   }
@@ -74,19 +74,19 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { correo, password } = req.body;
     
-    logger.info(`🔐 Login attempt for: ${email}`);
+    logger.info(`🔐 Intento de login para: ${correo}`);
     
     // Get user from Firestore
-    const userQuery = await db.collection('users')
-      .where('email', '==', email)
+    const userQuery = await db.collection('usuarios')
+      .where('correo', '==', correo)
       .get();
     
     if (userQuery.empty) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid credentials'
+        error: 'Credenciales inválidas'
       });
     }
     
@@ -99,7 +99,7 @@ export const login = async (req, res) => {
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid credentials'
+        error: 'Credenciales inválidas'
       });
     }
     
@@ -107,8 +107,8 @@ export const login = async (req, res) => {
     const token = jwt.sign(
       { 
         uid: userDoc.id, 
-        email: userData.email, 
-        role: userData.role 
+        correo: userData.correo, 
+        rol: userData.rol 
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
@@ -116,34 +116,34 @@ export const login = async (req, res) => {
     
     // Log the action
     await db.collection('logs').add({
-      userId: userDoc.id,
-      action: 'login',
-      result: 'success',
+      usuarioId: userDoc.id,
+      accion: 'login',
+      resultado: 'exitoso',
       timestamp: new Date().toISOString()
     });
     
-    logger.info(`✅ User ${email} logged in successfully`);
+    logger.info(`✅ Usuario ${correo} inició sesión exitosamente`);
     
     res.json({
       success: true,
-      message: 'Login successful',
+      message: 'Login exitoso',
       data: {
         user: {
           id: userDoc.id,
-          name: userData.name,
-          lastName: userData.lastName,
-          email: userData.email,
-          position: userData.position,
-          role: userData.role
+          nombre: userData.nombre,
+          apellidos: userData.apellidos,
+          correo: userData.correo,
+          puesto: userData.puesto,
+          rol: userData.rol
         },
         token
       }
     });
   } catch (err) {
-    logger.error('❌ Error during login:', err.message);
+    logger.error('❌ Error durante el login:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Login error',
+      error: 'Error en el login',
       details: err.message
     });
   }

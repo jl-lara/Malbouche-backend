@@ -1,161 +1,161 @@
 # Malbouche Backend API
 
-Backend for the Malbouche application using Express.js and Firebase Firestore.
+Backend para la aplicación Malbouche usando Express.js y Firebase Firestore.
 
-## 🚀 Features
+## 🚀 Características
 
-- **JWT Authentication**: Secure registration and login with bcrypt
-- **Firestore Database**: Scalable cloud storage
-- **Robust Validation**: Input validation with express-validator
-- **Security**: Helmet, CORS, rate limiting
-- **Logging**: Logging system with Winston
-- **Documentation**: Swagger/OpenAPI 3.0
+- **Autenticación JWT**: Registro y login seguro con bcrypt
+- **Base de datos Firestore**: Almacenamiento escalable en la nube
+- **Validación robusta**: Validación de entrada con express-validator
+- **Seguridad**: Helmet, CORS, rate limiting
+- **Logging**: Sistema de logs con Winston
+- **Documentación**: Swagger/OpenAPI 3.0
 
-## 📁 Project Structure
+## 📁 Estructura del Proyecto
 
 ```
 backend/
-├── controllers/          # Business logic
+├── controllers/          # Lógica de negocio
 │   ├── authController.js
 │   ├── usersController.js
-│   ├── movementsController.js
-│   └── eventsController.js
-├── routes/               # Route definitions
+│   ├── movimientosController.js
+│   └── eventosController.js
+├── routes/               # Definición de rutas
 │   ├── auth.js
 │   ├── users.js
-│   ├── movements.js
-│   └── events.js
-├── middleware/           # Custom middlewares
+│   ├── movimientos.js
+│   └── eventos.js
+├── middlewares/          # Middlewares personalizados
 │   ├── auth.js
 │   ├── validation.js
 │   └── errorHandler.js
-├── services/             # External services
+├── services/             # Servicios externos
 │   ├── firebase.js
 │   └── logger.js
-├── swagger.json          # API documentation
-├── index.js             # Entry point
-└── package.json         # Dependencies
+├── swagger.json          # Documentación API
+├── index.js             # Punto de entrada
+└── package.json         # Dependencias
 ```
 
-## 🔧 Configuration
+## 🔧 Configuración
 
-### 1. Environment Variables
+### 1. Variables de Entorno
 
-Create a `.env` file in the project root:
+Crea un archivo `.env` en la raíz del proyecto:
 
 ```env
-# Server port
+# Puerto del servidor
 PORT=3000
 
-# JWT Secret for signing tokens
-JWT_SECRET=your_very_secure_jwt_secret_here
+# JWT Secret para firmar tokens
+JWT_SECRET=tu_jwt_secret_muy_seguro_aqui
 
-# Firebase credentials as JSON string
-FIREBASE_CREDENTIALS={"type":"service_account","project_id":"your-project-id",...}
+# Credenciales de Firebase como JSON string
+FIREBASE_CREDENTIALS={"type":"service_account","project_id":"tu-proyecto-id",...}
 
-# CORS configuration
+# Configuración CORS
 CORS_ORIGIN=*
 
-# Logging configuration
+# Configuración de logs
 LOG_LEVEL=info
 
-# Environment
+# Entorno
 NODE_ENV=production
 ```
 
-### 2. Firebase Configuration
+### 2. Configuración de Firebase
 
-#### Option A: Environment Variable (Recommended for production)
+#### Opción A: Variable de Entorno (Recomendado para producción)
 
-1. Go to Firebase console → Project settings → Service accounts
-2. Generate a new private key and download the JSON file
-3. Convert the complete JSON to a single line and place it in `FIREBASE_CREDENTIALS`
+1. Ve a la consola de Firebase → Configuración del proyecto → Cuentas de servicio
+2. Genera una nueva clave privada y descarga el archivo JSON
+3. Convierte el JSON completo a una sola línea y colócalo en `FIREBASE_CREDENTIALS`
 
-Example:
+Ejemplo:
 ```env
 FIREBASE_CREDENTIALS={"type":"service_account","project_id":"malbouche-ad977","private_key_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...","client_id":"...","auth_uri":"...","token_uri":"...","auth_provider_x509_cert_url":"...","client_x509_cert_url":"...","universe_domain":"googleapis.com"}
 ```
 
-### 3. Installation and Execution
+### 3. Instalación y Ejecución
 
 ```bash
-# Install dependencies
+# Instalar dependencias
 npm install
 
-# Run in development
+# Ejecutar en desarrollo
 npm run dev
 
-# Run in production
+# Ejecutar en producción
 npm start
 ```
 
-## 📊 Firestore Structure
+## 📊 Estructura de Firestore
 
-### Collections
+### Colecciones
 
-#### `users`
+#### `usuarios`
 ```javascript
 {
-  name: "John",
-  lastName: "Doe",
-  email: "john@example.com",
-  passwordHash: "bcrypt_hash",
-  position: "Developer",
-  role: "user", // admin, user, guest
-  createdAt: "2024-01-01T00:00:00.000Z"
+  nombre: "Juan",
+  apellidos: "Pérez García",
+  correo: "juan@example.com",
+  passwordHash: "hash_bcrypt",
+  puesto: "Desarrollador",
+  rol: "usuario", // admin, usuario, visitante
+  fechaCreacion: "2024-01-01T00:00:00.000Z"
 }
 ```
 
-#### `movements`
+#### `movimientos`
 ```javascript
 {
-  name: "Left Movement",
-  movementType: "left", // right, left, swing, crazy, normal, custom
-  speed: 75, // 1-100
-  duration: 30, // seconds
-  createdAt: "2024-01-01T00:00:00.000Z",
-  createdBy: "user_id"
+  nombre: "Movimiento Izquierda",
+  tipoMovimiento: "izquierda", // derecha, izquierda, columpiarse, loco, normal, personalizado
+  velocidad: 75, // 1-100
+  duracion: 30, // segundos
+  fechaCreacion: "2024-01-01T00:00:00.000Z",
+  creadoPor: "usuario_id"
 }
 ```
 
-#### `events`
+#### `eventos`
 ```javascript
 {
-  eventName: "Morning Event",
-  startTime: "09:00",
-  endTime: "10:00",
-  weekDays: ["monday", "tuesday", "wednesday"],
-  movementType: "swing",
-  active: true,
-  createdAt: "2024-01-01T00:00:00.000Z",
-  createdBy: "user_id"
+  nombreEvento: "Evento Matutino",
+  horaInicio: "09:00",
+  horaFin: "10:00",
+  diasSemana: ["lunes", "martes", "miercoles"],
+  tipoMovimiento: "columpiarse",
+  activo: true,
+  fechaCreacion: "2024-01-01T00:00:00.000Z",
+  creadoPor: "usuario_id"
 }
 ```
 
 #### `logs`
 ```javascript
 {
-  userId: "user_id",
-  action: "create_event",
-  result: "success",
+  usuarioId: "usuario_id",
+  accion: "crear_evento",
+  resultado: "exitoso",
   timestamp: "2024-01-01T00:00:00.000Z",
-  details: { eventCreated: "event_id" }
+  detalles: { eventoCreado: "evento_id" }
 }
 ```
 
-## 🔐 Authentication
+## 🔐 Autenticación
 
-### Registration
+### Registro
 ```bash
 POST /api/auth/register
 Content-Type: application/json
 
 {
-  "name": "John",
-  "lastName": "Doe",
-  "email": "john@example.com",
+  "nombre": "Juan",
+  "apellidos": "Pérez",
+  "correo": "juan@example.com",
   "password": "password123",
-  "position": "Developer"
+  "puesto": "Desarrollador"
 }
 ```
 
@@ -165,84 +165,84 @@ POST /api/auth/login
 Content-Type: application/json
 
 {
-  "email": "john@example.com",
+  "correo": "juan@example.com",
   "password": "password123"
 }
 ```
 
-### Using the Token
+### Uso del Token
 ```bash
 GET /api/users
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-## 🛡️ Roles and Permissions
+## 🛡️ Roles y Permisos
 
-- **admin**: Full access to all functions
-- **user**: Can create/edit their own resources
-- **guest**: Read-only access
+- **admin**: Acceso completo a todas las funciones
+- **usuario**: Puede crear/editar sus propios recursos
+- **visitante**: Solo lectura
 
-## 📚 API Endpoints
+## 📚 Endpoints API
 
-### Authentication
-- `POST /api/auth/register` - Register user
-- `POST /api/auth/login` - Login
+### Autenticación
+- `POST /api/auth/register` - Registrar usuario
+- `POST /api/auth/login` - Iniciar sesión
 
-### Users
-- `GET /api/users` - List users (admin)
-- `POST /api/users` - Create user (admin)
-- `GET /api/users/:id` - Get user
-- `PUT /api/users/:id` - Update user
-- `DELETE /api/users/:id` - Delete user (admin)
+### Usuarios
+- `GET /api/users` - Listar usuarios (admin)
+- `POST /api/users` - Crear usuario (admin)
+- `GET /api/users/:id` - Obtener usuario
+- `PUT /api/users/:id` - Actualizar usuario
+- `DELETE /api/users/:id` - Eliminar usuario (admin)
 
-### Movements
-- `GET /api/movements` - List movements
-- `POST /api/movements` - Create movement
-- `PUT /api/movements/:id` - Update movement
-- `DELETE /api/movements/:id` - Delete movement
+### Movimientos
+- `GET /api/movimientos` - Listar movimientos
+- `POST /api/movimientos` - Crear movimiento
+- `PUT /api/movimientos/:id` - Actualizar movimiento
+- `DELETE /api/movimientos/:id` - Eliminar movimiento
 
-### Events
-- `GET /api/events` - List events
-- `POST /api/events` - Create event
-- `PUT /api/events/:id` - Update event
-- `DELETE /api/events/:id` - Delete event
+### Eventos
+- `GET /api/eventos` - Listar eventos
+- `POST /api/eventos` - Crear evento
+- `PUT /api/eventos/:id` - Actualizar evento
+- `DELETE /api/eventos/:id` - Eliminar evento
 
-## 🚀 Deployment on Render
+## 🚀 Despliegue en Render
 
-### 1. Preparation
+### 1. Preparación
 
-1. Upload your code to GitHub
-2. Connect your repository to Render
-3. Configure environment variables in Render
+1. Sube tu código a GitHub
+2. Conecta tu repositorio a Render
+3. Configura las variables de entorno en Render
 
-### 2. Environment Variables in Render
+### 2. Variables de Entorno en Render
 
-In the Render dashboard, configure:
+En el dashboard de Render, configura:
 
 ```
 PORT=3000
 NODE_ENV=production
-JWT_SECRET=your_very_secure_jwt_secret
+JWT_SECRET=tu_jwt_secret_muy_seguro
 FIREBASE_CREDENTIALS={"type":"service_account",...}
 LOG_LEVEL=info
 ```
 
-### 3. Build Configuration
+### 3. Configuración de Build
 
-Render will automatically detect that it's a Node.js project and use:
+Render detectará automáticamente que es un proyecto Node.js y usará:
 
 - **Build Command**: `npm install`
 - **Start Command**: `npm start`
 
 ### 4. Health Check
 
-The `/health` endpoint is available for monitoring:
+El endpoint `/health` está disponible para monitoreo:
 
 ```bash
 GET /health
 ```
 
-Response:
+Respuesta:
 ```json
 {
   "status": "healthy",
@@ -254,34 +254,34 @@ Response:
 }
 ```
 
-## 📖 Documentation
+## 📖 Documentación
 
-- **Swagger UI**: Available at `/docs`
-- **Postman Collection**: Import `swagger.json` into Postman
+- **Swagger UI**: Disponible en `/docs`
+- **Postman Collection**: Importa `swagger.json` en Postman
 - **Health Check**: `/health`
 
-## 🔍 Troubleshooting
+## 🔍 Solución de Problemas
 
-### Error: "FIREBASE_CREDENTIALS not found"
-- Verify that the variable is defined in `.env` or in Render
-- Make sure the JSON is on a single line
+### Error: "FIREBASE_CREDENTIALS no encontrada"
+- Verifica que la variable esté definida en `.env` o en Render
+- Asegúrate de que el JSON esté en una sola línea
 
-### Error: "Missing fields in credentials"
-- Verify that the Firebase JSON contains all required fields
-- Download credentials again from Firebase
+### Error: "Campos faltantes en credenciales"
+- Verifica que el JSON de Firebase contenga todos los campos requeridos
+- Descarga nuevamente las credenciales desde Firebase
 
-### Error: "Invalid token"
-- Verify that the JWT token hasn't expired
-- Make sure to include `Bearer ` before the token
+### Error: "Token inválido"
+- Verifica que el token JWT no haya expirado
+- Asegúrate de incluir `Bearer ` antes del token
 
-## 🤝 Contributing
+## 🤝 Contribución
 
-1. Fork the project
-2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
 
-## 📄 License
+## 📄 Licencia
 
-This project is under the MIT License - see the [LICENSE](LICENSE) file for details.
+Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.

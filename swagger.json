@@ -3,12 +3,12 @@
   "info": {
     "title": "Malbouche API",
     "version": "1.0.0",
-    "description": "API for ESP32 analog clock control with Firestore"
+    "description": "API para control de reloj analógico ESP32 con Firestore"
   },
   "servers": [
     {
       "url": "http://localhost:3000/api",
-      "description": "Development server"
+      "description": "Servidor de desarrollo"
     }
   ],
   "components": {
@@ -20,7 +20,7 @@
       }
     },
     "schemas": {
-      "User": {
+      "Usuario": {
         "type": "object",
         "properties": {
           "id": {
@@ -43,13 +43,13 @@
             "type": "string",
             "enum": ["admin", "usuario", "visitante"]
           },
-          "createdAt": {
+          "fechaCreacion": {
             "type": "string",
             "format": "date-time"
           }
         }
       },
-      "Movement": {
+      "Movimiento": {
         "type": "object",
         "properties": {
           "id": {
@@ -74,7 +74,7 @@
           }
         }
       },
-      "Event": {
+      "Evento": {
         "type": "object",
         "properties": {
           "id": {
@@ -112,7 +112,7 @@
   "paths": {
     "/auth/register": {
       "post": {
-        "summary": "Register new user",
+        "summary": "Registrar nuevo usuario",
         "tags": ["Authentication"],
         "requestBody": {
           "required": true,
@@ -146,20 +146,20 @@
         },
         "responses": {
           "201": {
-            "description": "User registered successfully"
+            "description": "Usuario registrado exitosamente"
           },
           "400": {
-            "description": "Validation errors"
+            "description": "Errores de validación"
           },
           "409": {
-            "description": "User already exists"
+            "description": "El usuario ya existe"
           }
         }
       }
     },
     "/auth/login": {
       "post": {
-        "summary": "Login",
+        "summary": "Iniciar sesión",
         "tags": ["Authentication"],
         "requestBody": {
           "required": true,
@@ -183,7 +183,7 @@
         },
         "responses": {
           "200": {
-            "description": "Login successful",
+            "description": "Login exitoso",
             "content": {
               "application/json": {
                 "schema": {
@@ -196,7 +196,7 @@
                       "type": "object",
                       "properties": {
                         "user": {
-                          "$ref": "#/components/schemas/User"
+                          "$ref": "#/components/schemas/Usuario"
                         },
                         "token": {
                           "type": "string"
@@ -209,19 +209,19 @@
             }
           },
           "401": {
-            "description": "Invalid credentials"
+            "description": "Credenciales inválidas"
           }
         }
       }
     },
     "/users": {
       "get": {
-        "summary": "Get all users",
+        "summary": "Obtener todos los usuarios",
         "tags": ["Users"],
         "security": [{"bearerAuth": []}],
         "responses": {
           "200": {
-            "description": "List of users",
+            "description": "Lista de usuarios",
             "content": {
               "application/json": {
                 "schema": {
@@ -233,7 +233,7 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/User"
+                        "$ref": "#/components/schemas/Usuario"
                       }
                     }
                   }
@@ -242,15 +242,15 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "No autorizado"
           },
           "403": {
-            "description": "Insufficient permissions"
+            "description": "Permisos insuficientes"
           }
         }
       },
       "post": {
-        "summary": "Create new user",
+        "summary": "Crear nuevo usuario",
         "tags": ["Users"],
         "security": [{"bearerAuth": []}],
         "requestBody": {
@@ -258,35 +258,35 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/User"
+                "$ref": "#/components/schemas/Usuario"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "User created successfully"
+            "description": "Usuario creado exitosamente"
           },
           "400": {
-            "description": "Validation errors"
+            "description": "Errores de validación"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "No autorizado"
           },
           "403": {
-            "description": "Insufficient permissions"
+            "description": "Permisos insuficientes"
           }
         }
       }
     },
-    "/movements": {
+    "/movimientos": {
       "get": {
-        "summary": "Get all movements",
-        "tags": ["Movements"],
+        "summary": "Obtener todos los movimientos",
+        "tags": ["Movimientos"],
         "security": [{"bearerAuth": []}],
         "responses": {
           "200": {
-            "description": "List of movements",
+            "description": "Lista de movimientos",
             "content": {
               "application/json": {
                 "schema": {
@@ -298,7 +298,7 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Movement"
+                        "$ref": "#/components/schemas/Movimiento"
                       }
                     }
                   }
@@ -307,45 +307,45 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "No autorizado"
           }
         }
       },
       "post": {
-        "summary": "Create new movement",
-        "tags": ["Movements"],
+        "summary": "Crear nuevo movimiento",
+        "tags": ["Movimientos"],
         "security": [{"bearerAuth": []}],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Movement"
+                "$ref": "#/components/schemas/Movimiento"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Movement created successfully"
+            "description": "Movimiento creado exitosamente"
           },
           "400": {
-            "description": "Validation errors"
+            "description": "Errores de validación"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "No autorizado"
           }
         }
       }
     },
-    "/events": {
+    "/eventos": {
       "get": {
-        "summary": "Get all events",
-        "tags": ["Events"],
+        "summary": "Obtener todos los eventos",
+        "tags": ["Eventos"],
         "security": [{"bearerAuth": []}],
         "responses": {
           "200": {
-            "description": "List of events",
+            "description": "Lista de eventos",
             "content": {
               "application/json": {
                 "schema": {
@@ -357,7 +357,7 @@
                     "data": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Event"
+                        "$ref": "#/components/schemas/Evento"
                       }
                     }
                   }
@@ -366,33 +366,33 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "No autorizado"
           }
         }
       },
       "post": {
-        "summary": "Create new event",
-        "tags": ["Events"],
+        "summary": "Crear nuevo evento",
+        "tags": ["Eventos"],
         "security": [{"bearerAuth": []}],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Event"
+                "$ref": "#/components/schemas/Evento"
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Event created successfully"
+            "description": "Evento creado exitosamente"
           },
           "400": {
-            "description": "Validation errors"
+            "description": "Errores de validación"
           },
           "401": {
-            "description": "Unauthorized"
+            "description": "No autorizado"
           }
         }
       }

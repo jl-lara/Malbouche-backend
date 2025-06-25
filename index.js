@@ -7,8 +7,8 @@ import dotenv from 'dotenv';
 // Import routes
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
-import movementsRoutes from './routes/movements.js';
-import eventsRoutes from './routes/events.js';
+import movimientosRoutes from './routes/movimientos.js';
+import eventosRoutes from './routes/eventos.js';
 
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './services/logger.js';
@@ -29,7 +29,7 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: {
-    error: 'Too many requests from this IP, please try again later.'
+    error: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.'
   }
 });
 app.use('/api/', limiter);
@@ -80,14 +80,14 @@ app.get('/', (req, res) => {
   res.json({
     name: 'Malbouche Backend API',
     version: '1.0.0',
-    description: 'Backend API for ESP32 analog clock control with Firestore',
+    description: 'Backend API para control de reloj analógico ESP32 con Firestore',
     status: 'active',
     timestamp: new Date().toISOString(),
     endpoints: {
       auth: '/api/auth',
       users: '/api/users',
-      movements: '/api/movements',
-      events: '/api/events',
+      movimientos: '/api/movimientos',
+      eventos: '/api/eventos',
       health: '/health',
       docs: '/docs'
     }
@@ -97,8 +97,8 @@ app.get('/', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/movements', movementsRoutes);
-app.use('/api/events', eventsRoutes);
+app.use('/api/movimientos', movimientosRoutes);
+app.use('/api/eventos', eventosRoutes);
 
 // API documentation
 app.get('/docs', (req, res) => {
@@ -113,27 +113,27 @@ app.get('/docs', (req, res) => {
     },
     endpoints: {
       'Authentication': {
-        'POST /api/auth/register': 'Register new user',
-        'POST /api/auth/login': 'Login'
+        'POST /api/auth/register': 'Registrar nuevo usuario',
+        'POST /api/auth/login': 'Iniciar sesión'
       },
       'Users': {
-        'GET /api/users': 'Get all users',
-        'POST /api/users': 'Create new user',
-        'GET /api/users/:id': 'Get user by ID',
-        'PUT /api/users/:id': 'Update user',
-        'DELETE /api/users/:id': 'Delete user'
+        'GET /api/users': 'Obtener todos los usuarios',
+        'POST /api/users': 'Crear nuevo usuario',
+        'GET /api/users/:id': 'Obtener usuario por ID',
+        'PUT /api/users/:id': 'Actualizar usuario',
+        'DELETE /api/users/:id': 'Eliminar usuario'
       },
-      'Movements': {
-        'GET /api/movements': 'Get all movements',
-        'POST /api/movements': 'Create new movement',
-        'PUT /api/movements/:id': 'Update movement',
-        'DELETE /api/movements/:id': 'Delete movement'
+      'Movimientos': {
+        'GET /api/movimientos': 'Obtener todos los movimientos',
+        'POST /api/movimientos': 'Crear nuevo movimiento',
+        'PUT /api/movimientos/:id': 'Actualizar movimiento',
+        'DELETE /api/movimientos/:id': 'Eliminar movimiento'
       },
-      'Events': {
-        'GET /api/events': 'Get all events',
-        'POST /api/events': 'Create new event',
-        'PUT /api/events/:id': 'Update event',
-        'DELETE /api/events/:id': 'Delete event'
+      'Eventos': {
+        'GET /api/eventos': 'Obtener todos los eventos',
+        'POST /api/eventos': 'Crear nuevo evento',
+        'PUT /api/eventos/:id': 'Actualizar evento',
+        'DELETE /api/eventos/:id': 'Eliminar evento'
       }
     }
   });
@@ -146,7 +146,7 @@ app.use(errorHandler);
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
-    error: 'Endpoint not found',
+    error: 'Endpoint no encontrado',
     path: req.originalUrl,
     method: req.method,
     timestamp: new Date().toISOString()
@@ -157,22 +157,22 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
   logger.info('🚀 ================================');
   logger.info(`🚀 Malbouche Backend Server`);
-  logger.info(`🚀 Port: ${PORT}`);
-  logger.info(`🚀 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`🚀 Puerto: ${PORT}`);
+  logger.info(`🚀 Entorno: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`🚀 API URL: http://localhost:${PORT}`);
   logger.info(`🚀 Health Check: http://localhost:${PORT}/health`);
-  logger.info(`🚀 Documentation: http://localhost:${PORT}/docs`);
+  logger.info(`🚀 Documentación: http://localhost:${PORT}/docs`);
   logger.info('🚀 ================================');
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down server...');
+  logger.info('SIGTERM recibido, cerrando servidor...');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down server...');
+  logger.info('SIGINT recibido, cerrando servidor...');
   process.exit(0);
 });
 
