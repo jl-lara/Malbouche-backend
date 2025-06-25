@@ -74,7 +74,9 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { correo, password } = req.body;
+    let { correo, password } = req.body;
+    
+    correo = correo.trim().toLowerCase();
     
     logger.info(`🔐 Intento de login para: ${correo}`);
     
