@@ -33,8 +33,8 @@ export const validateUser = [
     .isLength({ max: 100 })
     .withMessage('El puesto no puede exceder 100 caracteres'),
   body('rol')
-    .isIn(['admin', 'usuario', 'visitante'])
-    .withMessage('El rol debe ser: admin, usuario o visitante'),
+    .isIn(['admin', 'usuario', 'vip'])
+    .withMessage('El rol debe ser: admin, usuario o vip'),
   handleValidationErrors
 ];
 
