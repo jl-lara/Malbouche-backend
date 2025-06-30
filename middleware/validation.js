@@ -81,15 +81,18 @@ export const validateMovimiento = [
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('El nombre debe tener entre 2 y 100 caracteres'),
-  body('tipoMovimiento')
-    .isIn(['derecha', 'izquierda', 'columpiarse', 'loco', 'normal', 'personalizado'])
+  body('tipoMovimientoHoras')
+    .isIn(['derecha', 'izquierda'])
     .withMessage('Tipo de movimiento inválido'),
-  body('velocidad')
+  body('velocidadHora')
     .isInt({ min: 1, max: 100 })
     .withMessage('La velocidad debe ser un número entre 1 y 100'),
-  body('duracion')
-    .isInt({ min: 1, max: 3600 })
-    .withMessage('La duración debe ser un número entre 1 y 3600 segundos'),
+  body('tipoMovimientoMinutos')
+    .isIn(['derecha', 'izquierda'])
+    .withMessage('Tipo de movimiento inválido'),
+  body('velocidadMinuto')
+    .isInt({ min: 1, max: 100 })
+    .withMessage('La velocidad debe ser un número entre 1 y 100'),
   handleValidationErrors
 ];
 
