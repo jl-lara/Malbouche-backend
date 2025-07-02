@@ -34,12 +34,26 @@ export const getAllMovements = async (req, res) => {
 
 export const createMovement = async (req, res) => {
   try {
-    const { nombre, tipoMovimiento, velocidad, duracion } = req.body;
+    const { 
+      nombre, 
+      tipoMovimientoHoras, 
+      velocidadHora, 
+      tipoMovimientoMinutos, 
+      velocidadMinuto, 
+      tipoMovimiento, 
+      velocidad, 
+      duracion 
+    } = req.body;
     
     logger.info(`🎭 Creando movimiento: ${nombre}`);
     
     const movimientoData = {
       nombre,
+      tipoMovimientoHoras,
+      velocidadHora: parseInt(velocidadHora),
+      tipoMovimientoMinutos,
+      velocidadMinuto: parseInt(velocidadMinuto),
+      // Campos legacy para compatibilidad
       tipoMovimiento,
       velocidad: parseInt(velocidad),
       duracion: parseInt(duracion),
