@@ -95,7 +95,16 @@ export const createMovement = async (req, res) => {
 export const updateMovement = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, tipoMovimiento, velocidad, duracion } = req.body;
+    const { 
+      nombre, 
+      tipoMovimientoHoras, 
+      velocidadHora, 
+      tipoMovimientoMinutos, 
+      velocidadMinuto, 
+      tipoMovimiento, 
+      velocidad, 
+      duracion 
+    } = req.body;
     
     logger.info(`🎭 Actualizando movimiento: ${id}`);
     
@@ -112,6 +121,10 @@ export const updateMovement = async (req, res) => {
     const updateData = {};
     
     if (nombre) updateData.nombre = nombre;
+    if (tipoMovimientoHoras) updateData.tipoMovimientoHoras = tipoMovimientoHoras;
+    if (velocidadHora !== undefined) updateData.velocidadHora = parseInt(velocidadHora);
+    if (tipoMovimientoMinutos) updateData.tipoMovimientoMinutos = tipoMovimientoMinutos;
+    if (velocidadMinuto !== undefined) updateData.velocidadMinuto = parseInt(velocidadMinuto);
     if (tipoMovimiento) updateData.tipoMovimiento = tipoMovimiento;
     if (velocidad !== undefined) updateData.velocidad = parseInt(velocidad);
     if (duracion !== undefined) updateData.duracion = parseInt(duracion);
