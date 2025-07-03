@@ -112,11 +112,16 @@ export const validateEvento = [
     .isArray({ min: 1 })
     .withMessage('Debe seleccionar al menos un día de la semana'),
   body('diasSemana.*')
-    .isIn(['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'])
+    .isIn(['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa'])
     .withMessage('Día de la semana inválido'),
-  body('tipoMovimiento')
-    .isIn(['derecha', 'izquierda', 'columpiarse', 'loco', 'normal', 'personalizado'])
-    .withMessage('Tipo de movimiento inválido'),
+  body('movementId')
+    .trim()
+    .isLength({ min: 1 })
+    .withMessage('El ID del movimiento es requerido'),
+  body('enabled')
+    .optional()
+    .isBoolean()
+    .withMessage('El campo enabled debe ser booleano'),
   handleValidationErrors
 ];
 

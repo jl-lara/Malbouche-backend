@@ -34,7 +34,7 @@ export const getAllEvents = async (req, res) => {
 
 export const createEvent = async (req, res) => {
   try {
-    const { nombreEvento, horaInicio, horaFin, diasSemana, tipoMovimiento } = req.body;
+    const { nombreEvento, horaInicio, horaFin, diasSemana, movementId, enabled } = req.body;
     
     logger.info(`📅 Creando evento: ${nombreEvento}`);
     
@@ -52,10 +52,10 @@ export const createEvent = async (req, res) => {
       horaInicio,
       horaFin,
       diasSemana,
-      tipoMovimiento,
+      movementId,
       fechaCreacion: new Date().toISOString(),
       creadoPor: req.user?.uid || 'system',
-      activo: true
+      activo: enabled !== undefined ? enabled : true
     };
     
     const eventoRef = await db.collection('eventos').add(eventoData);
