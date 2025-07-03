@@ -107,9 +107,11 @@ export const updateMovement = async (req, res) => {
     } = req.body;
     
     logger.info(`🎭 Actualizando movimiento: ${id}`);
+    console.log(`UpdateMovement called with id: '${id}'`);
     
     // Check if movement exists
     const movimientoDoc = await db.collection('movimientos').doc(id).get();
+    console.log(`Document exists: ${movimientoDoc.exists}`);
     
     if (!movimientoDoc.exists) {
       return res.status(404).json({
