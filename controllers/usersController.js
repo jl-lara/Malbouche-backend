@@ -4,7 +4,7 @@ import { logger } from '../services/logger.js';
 
 export const getAllUsers = async (req, res) => {
   try {
-    logger.info('👥 Obteniendo todos los usuarios...');
+    // Removed activity logging
     
     const usersSnapshot = await db.collection('usuarios').get();
     const users = [];
@@ -18,8 +18,6 @@ export const getAllUsers = async (req, res) => {
         ...userData
       });
     });
-    
-    logger.info(`✅ ${users.length} usuarios encontrados`);
     
     res.json({
       success: true,
@@ -40,7 +38,7 @@ export const createUser = async (req, res) => {
   try {
     const { nombre, apellidos, correo, password, puesto = '', rol = 'usuario' } = req.body;
     
-    logger.info(`👤 Creando usuario: ${correo}`);
+    // Removed activity logging
     
     // Check if user already exists
     const existingUser = await db.collection('usuarios')
@@ -70,16 +68,7 @@ export const createUser = async (req, res) => {
     
     const userRef = await db.collection('usuarios').add(userData);
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'crear_usuario',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString(),
-      detalles: { usuarioCreado: userRef.id }
-    });
-    
-    logger.info(`✅ Usuario creado con ID: ${userRef.id}`);
+    // Removed activity logging to logs collection
     
     // Remove sensitive data from response
     delete userData.passwordHash;
@@ -106,7 +95,7 @@ export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    logger.info(`👤 Obteniendo usuario: ${id}`);
+    // Removed activity logging
     
     const userDoc = await db.collection('usuarios').doc(id).get();
     
@@ -143,7 +132,7 @@ export const updateUser = async (req, res) => {
     const { id } = req.params;
     const { nombre, apellidos, correo, password, puesto, rol } = req.body;
     
-    logger.info(`👤 Actualizando usuario: ${id}`);
+    // Removed activity logging
     
     // Check if user exists
     const userDoc = await db.collection('usuarios').doc(id).get();
@@ -170,16 +159,7 @@ export const updateUser = async (req, res) => {
     
     await db.collection('usuarios').doc(id).update(updateData);
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'actualizar_usuario',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString(),
-      detalles: { usuarioActualizado: id }
-    });
-    
-    logger.info(`✅ Usuario ${id} actualizado`);
+    // Removed activity logging to logs collection
     
     res.json({
       success: true,
@@ -200,7 +180,7 @@ export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
     
-    logger.info(`🗑️ Eliminando usuario: ${id}`);
+    // Removed activity logging
     
     // Check if user exists
     const userDoc = await db.collection('usuarios').doc(id).get();
@@ -214,16 +194,7 @@ export const deleteUser = async (req, res) => {
     
     await db.collection('usuarios').doc(id).delete();
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'eliminar_usuario',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString(),
-      detalles: { usuarioEliminado: id }
-    });
-    
-    logger.info(`✅ Usuario ${id} eliminado`);
+    // Removed activity logging to logs collection
     
     res.json({
       success: true,

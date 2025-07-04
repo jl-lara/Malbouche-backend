@@ -43,19 +43,22 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request logging middleware
+// Minimal request logging middleware - only log errors
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
-    const duration = Date.now() - start;
-    logger.info(`${req.method} ${req.path} - ${res.statusCode} - ${duration}ms`, {
-      method: req.method,
-      path: req.path,
-      statusCode: res.statusCode,
-      duration,
-      ip: req.ip,
-      userAgent: req.get('User-Agent')
-    });
+    // Only log if there's an error (status >= 400)
+    if (res.statusCode >= 400) {
+      const duration = Date.now() - start;
+      logger.error(`${req.method} ${req.path} - ${res.statusCode} - ${duration}ms`, {
+        method: req.method,
+        path: req.path,
+        statusCode: res.statusCode,
+        duration,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    }
   });
   next();
 });
@@ -100,15 +103,6 @@ app.use('/api/movements', movimientosRoutes);
 import eventsRoutes from './routes/events.js';
 
 app.use('/api/events', eventsRoutes);
-/*
-// app.use('/api/eventos', eventosRoutes);
-*/
-
-/*
-// Duplicate imports removed
-// import movimientosRoutes from './routes/movements.js';
-// import eventsRoutes from './routes/events.js';
-*/
 
 // API documentation
 app.get('/docs', (req, res) => {
@@ -165,24 +159,18 @@ app.use('*', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  logger.info('🚀 ================================');
-  logger.info(`🚀 Malbouche Backend Server`);
-  logger.info(`🚀 Puerto: ${PORT}`);
-  logger.info(`🚀 Entorno: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`🚀 API URL: http://localhost:${PORT}`);
-  logger.info(`🚀 Health Check: http://localhost:${PORT}/health`);
-  logger.info(`🚀 Documentación: http://localhost:${PORT}/docs`);
-  logger.info('🚀 ================================');
+  // Only log critical startup information
+  console.log(`🚀 Malbouche Backend Server running on port ${PORT}`);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  logger.info('SIGTERM recibido, cerrando servidor...');
+  console.log('SIGTERM recibido, cerrando servidor...');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  logger.info('SIGINT recibido, cerrando servidor...');
+  console.log('SIGINT recibido, cerrando servidor...');
   process.exit(0);
 });
 

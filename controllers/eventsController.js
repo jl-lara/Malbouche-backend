@@ -3,7 +3,7 @@ import { logger } from '../services/logger.js';
 
 export const getAllEvents = async (req, res) => {
   try {
-    logger.info('📅 Obteniendo todos los eventos...');
+    // Removed activity logging
     
     const eventosSnapshot = await db.collection('eventos').get();
     const eventos = [];
@@ -14,8 +14,6 @@ export const getAllEvents = async (req, res) => {
         ...doc.data()
       });
     });
-    
-    logger.info(`✅ ${eventos.length} eventos encontrados`);
     
     res.json({
       success: true,
@@ -36,7 +34,7 @@ export const createEvent = async (req, res) => {
   try {
     const { nombreEvento, horaInicio, horaFin, diasSemana, movementId, enabled } = req.body;
     
-    logger.info(`📅 Creando evento: ${nombreEvento}`);
+    // Removed activity logging
     
     // Validate time format
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -60,16 +58,7 @@ export const createEvent = async (req, res) => {
     
     const eventoRef = await db.collection('eventos').add(eventoData);
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'crear_evento',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString(),
-      detalles: { eventoCreado: eventoRef.id }
-    });
-    
-    logger.info(`✅ Evento creado con ID: ${eventoRef.id}`);
+    // Removed activity logging to logs collection
     
     res.status(201).json({
       success: true,
@@ -94,7 +83,7 @@ export const updateEvent = async (req, res) => {
     const { id } = req.params;
     const { nombreEvento, horaInicio, horaFin, diasSemana, tipoMovimiento, activo } = req.body;
     
-    logger.info(`📅 Actualizando evento: ${id}`);
+    // Removed activity logging
     
     // Check if event exists
     const eventoDoc = await db.collection('eventos').doc(id).get();
@@ -137,16 +126,7 @@ export const updateEvent = async (req, res) => {
     
     await db.collection('eventos').doc(id).update(updateData);
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'actualizar_evento',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString(),
-      detalles: { eventoActualizado: id }
-    });
-    
-    logger.info(`✅ Evento ${id} actualizado`);
+    // Removed activity logging to logs collection
     
     res.json({
       success: true,
@@ -167,7 +147,7 @@ export const deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
     
-    logger.info(`🗑️ Eliminando evento: ${id}`);
+    // Removed activity logging
     
     // Check if event exists
     const eventoDoc = await db.collection('eventos').doc(id).get();
@@ -181,16 +161,7 @@ export const deleteEvent = async (req, res) => {
     
     await db.collection('eventos').doc(id).delete();
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'eliminar_evento',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString(),
-      detalles: { eventoEliminado: id }
-    });
-    
-    logger.info(`✅ Evento ${id} eliminado`);
+    // Removed activity logging to logs collection
     
     res.json({
       success: true,
