@@ -10,7 +10,7 @@ export const register = async (req, res) => {
   try {
     const { nombre, apellidos, correo, password, puesto = '' } = req.body;
     
-    logger.info(`📝 Intento de registro para: ${correo}`);
+    // Removed activity logging
     
     // Check if user already exists
     const existingUser = await db.collection('usuarios')
@@ -40,15 +40,7 @@ export const register = async (req, res) => {
     
     const userRef = await db.collection('usuarios').add(userData);
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: userRef.id,
-      accion: 'registro',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString()
-    });
-    
-    logger.info(`✅ Usuario ${correo} registrado exitosamente`);
+    // Removed activity logging to logs collection
     
     res.status(201).json({
       success: true,
@@ -78,7 +70,7 @@ export const login = async (req, res) => {
     
     correo = correo.trim().toLowerCase();
     
-    logger.info(`🔐 Intento de login para: ${correo}`);
+    // Removed activity logging
     
     // Get user from Firestore
     const userQuery = await db.collection('usuarios')
@@ -116,15 +108,7 @@ export const login = async (req, res) => {
       { expiresIn: JWT_EXPIRES_IN }
     );
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: userDoc.id,
-      accion: 'login',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString()
-    });
-    
-    logger.info(`✅ Usuario ${correo} inició sesión exitosamente`);
+    // Removed activity logging to logs collection
     
     res.json({
       success: true,

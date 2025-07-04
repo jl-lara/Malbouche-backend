@@ -1,6 +1,5 @@
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
-import { logger } from './logger.js';
 
 dotenv.config();
 
@@ -22,7 +21,7 @@ try {
     throw new Error(`Campos faltantes en credenciales: ${missingFields.join(', ')}`);
   }
 
-  // Initialize Firebase Admin
+  // Initialize Firebase Admin with minimal logging
   admin.initializeApp({
     credential: admin.credential.cert(credentials),
     projectId: credentials.project_id
@@ -30,11 +29,11 @@ try {
 
   db = admin.firestore();
   
-  logger.info('🔥 Firebase Admin inicializado correctamente');
-  logger.info(`📊 Proyecto: ${credentials.project_id}`);
+  // Only log critical initialization info
+  console.log('🔥 Firebase Admin inicializado');
   
 } catch (error) {
-  logger.error('❌ Error al inicializar Firebase:', error.message);
+  console.error('❌ Error al inicializar Firebase:', error.message);
   process.exit(1);
 }
 

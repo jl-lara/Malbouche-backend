@@ -3,7 +3,7 @@ import { logger } from '../services/logger.js';
 
 export const getAllMovements = async (req, res) => {
   try {
-    logger.info('🎭 Obteniendo todos los movimientos...');
+    // Removed activity logging
     
     const movimientosSnapshot = await db.collection('movimientos').get();
     const movimientos = [];
@@ -14,8 +14,6 @@ export const getAllMovements = async (req, res) => {
         ...doc.data()
       });
     });
-    
-    logger.info(`✅ ${movimientos.length} movimientos encontrados`);
     
     res.json({
       success: true,
@@ -45,7 +43,7 @@ export const createMovement = async (req, res) => {
       duracion 
     } = req.body;
     
-    logger.info(`🎭 Creando movimiento: ${nombre}`);
+    // Removed activity logging
     
     const movimientoData = {
       nombre,
@@ -63,16 +61,7 @@ export const createMovement = async (req, res) => {
     
     const movimientoRef = await db.collection('movimientos').add(movimientoData);
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'crear_movimiento',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString(),
-      detalles: { movimientoCreado: movimientoRef.id }
-    });
-    
-    logger.info(`✅ Movimiento creado con ID: ${movimientoRef.id}`);
+    // Removed activity logging to logs collection
     
     res.status(201).json({
       success: true,
@@ -106,12 +95,10 @@ export const updateMovement = async (req, res) => {
       duracion 
     } = req.body;
     
-    logger.info(`🎭 Actualizando movimiento: ${id}`);
-    console.log(`UpdateMovement called with id: '${id}'`);
+    // Removed activity logging
     
     // Check if movement exists
     const movimientoDoc = await db.collection('movimientos').doc(id).get();
-    console.log(`Document exists: ${movimientoDoc.exists}`);
     
     if (!movimientoDoc.exists) {
       return res.status(404).json({
@@ -135,16 +122,7 @@ export const updateMovement = async (req, res) => {
     
     await db.collection('movimientos').doc(id).update(updateData);
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'actualizar_movimiento',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString(),
-      detalles: { movimientoActualizado: id }
-    });
-    
-    logger.info(`✅ Movimiento ${id} actualizado`);
+    // Removed activity logging to logs collection
     
     res.json({
       success: true,
@@ -165,7 +143,7 @@ export const deleteMovement = async (req, res) => {
   try {
     const { id } = req.params;
     
-    logger.info(`🗑️ Eliminando movimiento: ${id}`);
+    // Removed activity logging
     
     // Check if movement exists
     const movimientoDoc = await db.collection('movimientos').doc(id).get();
@@ -179,16 +157,7 @@ export const deleteMovement = async (req, res) => {
     
     await db.collection('movimientos').doc(id).delete();
     
-    // Log the action
-    await db.collection('logs').add({
-      usuarioId: req.user?.uid || 'system',
-      accion: 'eliminar_movimiento',
-      resultado: 'exitoso',
-      timestamp: new Date().toISOString(),
-      detalles: { movimientoEliminado: id }
-    });
-    
-    logger.info(`✅ Movimiento ${id} eliminado`);
+    // Removed activity logging to logs collection
     
     res.json({
       success: true,
