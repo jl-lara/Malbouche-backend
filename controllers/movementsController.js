@@ -53,19 +53,20 @@ export const setCurrentMovement = async (presetName, velocidad, userId) => {
 
 export const getAllMovements = async (req, res) => {
   try {
-    // Placeholder: Fetch all movements from database
-    const movements = []; // Replace with actual DB call
-    res.status(200).json(movements);
+    const snapshot = await db.collection('movimientos').get();
+    const movements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.status(200).json({ success: true, data: movements });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching movements', error: error.message });
+    res.status(500).json({ success: false, error: 'Error fetching movements', details: error.message });
   }
 };
 
 export const createMovement = async (req, res) => {
   try {
-    // Placeholder: Create a new movement in database
-    const newMovement = req.body; // Replace with actual DB insert logic
-    res.status(201).json(newMovement);
+    const newMovement = req.body;
+    const docRef = await db.collection('movimientos').add(newMovement);
+    const createdMovement = { id: docRef.id, ...newMovement };
+    res.status(201).json(createdMovement);
   } catch (error) {
     res.status(500).json({ message: 'Error creating movement', error: error.message });
   }
