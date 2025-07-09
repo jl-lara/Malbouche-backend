@@ -1,4 +1,5 @@
 import { logger } from '../services/logger.js';
+import { db } from '../services/firebase.js';
 
 export const setCurrentMovement = async (presetName, velocidad, userId) => {
   try {
