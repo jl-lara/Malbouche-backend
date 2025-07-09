@@ -32,37 +32,39 @@ export const getAllMovements = async (req, res) => {
 
 export const createMovement = async (req, res) => {
   try {
-    const { 
-      nombre, 
-      tipoMovimientoHoras, 
-      velocidadHora, 
-      tipoMovimientoMinutos, 
-      velocidadMinuto, 
-      tipoMovimiento, 
-      velocidad, 
-      duracion 
+    const {
+      nombre,
+      duracion,
+      movimiento
     } = req.body;
-    
-    // Removed activity logging
-    
+
+    if (!movimiento || typeof movimiento !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'El campo movimiento es requerido y debe ser un objeto'
+      });
+    }
+
     const movimientoData = {
       nombre,
-      tipoMovimientoHoras,
-      velocidadHora: parseInt(velocidadHora),
-      tipoMovimientoMinutos,
-      velocidadMinuto: parseInt(velocidadMinuto),
-      // Campos legacy para compatibilidad
-      tipoMovimiento,
-      velocidad: parseInt(velocidad),
       duracion: parseInt(duracion),
+      movimiento: {
+        direccionGeneral: movimiento.direccionGeneral,
+        horas: {
+          direccion: movimiento.horas?.direccion,
+          velocidad: parseInt(movimiento.horas?.velocidad)
+        },
+        minutos: {
+          direccion: movimiento.minutos?.direccion,
+          velocidad: parseInt(movimiento.minutos?.velocidad)
+        }
+      },
       fechaCreacion: new Date().toISOString(),
       creadoPor: req.user?.uid || 'system'
     };
-    
+
     const movimientoRef = await db.collection('movimientos').add(movimientoData);
-    
-    // Removed activity logging to logs collection
-    
+
     res.status(201).json({
       success: true,
       message: 'Movimiento creado exitosamente',
@@ -84,46 +86,58 @@ export const createMovement = async (req, res) => {
 export const updateMovement = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      nombre, 
-      tipoMovimientoHoras, 
-      velocidadHora, 
-      tipoMovimientoMinutos, 
-      velocidadMinuto, 
-      tipoMovimiento, 
-      velocidad, 
-      duracion 
+    const {
+      nombre,
+      duracion,
+      movimiento
     } = req.body;
-    
-    // Removed activity logging
-    
-    // Check if movement exists
+
     const movimientoDoc = await db.collection('movimientos').doc(id).get();
-    
+
     if (!movimientoDoc.exists) {
       return res.status(404).json({
         success: false,
         error: 'Movimiento no encontrado'
       });
     }
-    
+
     const updateData = {};
-    
+
     if (nombre) updateData.nombre = nombre;
-    if (tipoMovimientoHoras) updateData.tipoMovimientoHoras = tipoMovimientoHoras;
-    if (velocidadHora !== undefined) updateData.velocidadHora = parseInt(velocidadHora);
-    if (tipoMovimientoMinutos) updateData.tipoMovimientoMinutos = tipoMovimientoMinutos;
-    if (velocidadMinuto !== undefined) updateData.velocidadMinuto = parseInt(velocidadMinuto);
-    if (tipoMovimiento) updateData.tipoMovimiento = tipoMovimiento;
-    if (velocidad !== undefined) updateData.velocidad = parseInt(velocidad);
     if (duracion !== undefined) updateData.duracion = parseInt(duracion);
-    
+
+    if (movimiento && typeof movimiento === 'object') {
+      updateData.movimiento = {};
+
+      if (movimiento.direccionGeneral) {
+        updateData.movimiento.direccionGeneral = movimiento.direccionGeneral;
+      }
+
+      if (movimiento.horas && typeof movimiento.horas === 'object') {
+        updateData.movimiento.horas = {};
+        if (movimiento.horas.direccion) {
+          updateData.movimiento.horas.direccion = movimiento.horas.direccion;
+        }
+        if (movimiento.horas.velocidad !== undefined) {
+          updateData.movimiento.horas.velocidad = parseInt(movimiento.horas.velocidad);
+        }
+      }
+
+      if (movimiento.minutos && typeof movimiento.minutos === 'object') {
+        updateData.movimiento.minutos = {};
+        if (movimiento.minutos.direccion) {
+          updateData.movimiento.minutos.direccion = movimiento.minutos.direccion;
+        }
+        if (movimiento.minutos.velocidad !== undefined) {
+          updateData.movimiento.minutos.velocidad = parseInt(movimiento.minutos.velocidad);
+        }
+      }
+    }
+
     updateData.fechaActualizacion = new Date().toISOString();
-    
+
     await db.collection('movimientos').doc(id).update(updateData);
-    
-    // Removed activity logging to logs collection
-    
+
     res.json({
       success: true,
       message: 'Movimiento actualizado exitosamente',

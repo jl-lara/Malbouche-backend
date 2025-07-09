@@ -81,18 +81,33 @@ export const validateMovimiento = [
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('El nombre debe tener entre 2 y 100 caracteres'),
-  body('tipoMovimientoHoras')
+  body('duracion')
+    .isInt({ min: 1 })
+    .withMessage('La duración debe ser un número entero positivo'),
+  body('movimiento')
+    .isObject()
+    .withMessage('El campo movimiento debe ser un objeto'),
+  body('movimiento.direccionGeneral')
     .isIn(['derecha', 'izquierda'])
-    .withMessage('Tipo de movimiento inválido'),
-  body('velocidadHora')
-    .isInt({ min: 1, max: 100 })
-    .withMessage('La velocidad debe ser un número entre 1 y 100'),
-  body('tipoMovimientoMinutos')
+    .withMessage('direccionGeneral debe ser "derecha" o "izquierda"'),
+  body('movimiento.horas')
+    .isObject()
+    .withMessage('El campo movimiento.horas debe ser un objeto'),
+  body('movimiento.horas.direccion')
     .isIn(['derecha', 'izquierda'])
-    .withMessage('Tipo de movimiento inválido'),
-  body('velocidadMinuto')
+    .withMessage('movimiento.horas.direccion debe ser "derecha" o "izquierda"'),
+  body('movimiento.horas.velocidad')
     .isInt({ min: 1, max: 100 })
-    .withMessage('La velocidad debe ser un número entre 1 y 100'),
+    .withMessage('movimiento.horas.velocidad debe ser un número entre 1 y 100'),
+  body('movimiento.minutos')
+    .isObject()
+    .withMessage('El campo movimiento.minutos debe ser un objeto'),
+  body('movimiento.minutos.direccion')
+    .isIn(['derecha', 'izquierda'])
+    .withMessage('movimiento.minutos.direccion debe ser "derecha" o "izquierda"'),
+  body('movimiento.minutos.velocidad')
+    .isInt({ min: 1, max: 100 })
+    .withMessage('movimiento.minutos.velocidad debe ser un número entre 1 y 100'),
   handleValidationErrors
 ];
 
