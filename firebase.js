@@ -64,5 +64,5 @@ try {
   process.exit(1);
 }
 
-const db = admin.database();
+const db = admin.firestore();
 export { admin, db };
