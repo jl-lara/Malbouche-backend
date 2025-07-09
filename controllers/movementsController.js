@@ -187,3 +187,40 @@ export const deleteMovement = async (req, res) => {
     });
   }
 };
+
+export const updateCurrentMovementSpeed = async (velocidad, userId) => {
+  try {
+    const docRef = db.collection('movimiento_actual').doc('actual');
+    const docSnapshot = await docRef.get();
+
+    if (!docSnapshot.exists) {
+      const error = new Error(`Current movement document 'actual' not found`);
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const currentData = docSnapshot.data();
+
+    // Update velocidad fields
+    if (currentData.movimiento) {
+      if (currentData.movimiento.horas) {
+        currentData.movimiento.horas.velocidad = parseInt(velocidad);
+      }
+      if (currentData.movimiento.minutos) {
+        currentData.movimiento.minutos.velocidad = parseInt(velocidad);
+      }
+    }
+
+    // Update fechaActualizacion
+    currentData.fechaActualizacion = new Date().toISOString();
+    currentData.creadoPor = userId || currentData.creadoPor || 'system';
+
+    // Write updated document back
+    await docRef.set(currentData);
+
+    return { id: 'actual', ...currentData };
+  } catch (err) {
+    logger.error('❌ Error updating current movement speed:', err.message);
+    throw err;
+  }
+};

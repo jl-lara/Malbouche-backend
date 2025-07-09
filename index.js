@@ -98,8 +98,10 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 import movimientosRoutes from './routes/movements.js';
+import movimientoActualRoutes from './routes/movimientoActual.js';
 
 app.use('/api/movements', movimientosRoutes);
+app.use('/api/movimiento-actual', movimientoActualRoutes);
 import eventsRoutes from './routes/events.js';
 
 app.use('/api/events', eventsRoutes);
