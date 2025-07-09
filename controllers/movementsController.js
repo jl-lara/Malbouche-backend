@@ -1,3 +1,5 @@
+import logger from '../services/logger.js';
+
 export const setCurrentMovement = async (presetName, velocidad, userId) => {
   try {
     const docRef = db.collection('movimiento_actual').doc('actual');
