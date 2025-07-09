@@ -85,27 +85,35 @@ export const validateMovimiento = [
     .isInt({ min: 1 })
     .withMessage('La duración debe ser un número entero positivo'),
   body('movimiento')
+    .optional()
     .isObject()
     .withMessage('El campo movimiento debe ser un objeto'),
   body('movimiento.direccionGeneral')
+    .optional()
     .isIn(['derecha', 'izquierda'])
     .withMessage('direccionGeneral debe ser "derecha" o "izquierda"'),
   body('movimiento.horas')
+    .optional()
     .isObject()
     .withMessage('El campo movimiento.horas debe ser un objeto'),
   body('movimiento.horas.direccion')
+    .optional()
     .isIn(['derecha', 'izquierda'])
     .withMessage('movimiento.horas.direccion debe ser "derecha" o "izquierda"'),
   body('movimiento.horas.velocidad')
+    .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('movimiento.horas.velocidad debe ser un número entre 1 y 100'),
   body('movimiento.minutos')
+    .optional()
     .isObject()
     .withMessage('El campo movimiento.minutos debe ser un objeto'),
   body('movimiento.minutos.direccion')
+    .optional()
     .isIn(['derecha', 'izquierda'])
     .withMessage('movimiento.minutos.direccion debe ser "derecha" o "izquierda"'),
   body('movimiento.minutos.velocidad')
+    .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('movimiento.minutos.velocidad debe ser un número entre 1 y 100'),
   handleValidationErrors
