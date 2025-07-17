@@ -26,7 +26,7 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 1000, // limit each IP to 100 requests per windowMs
   message: {
-    error: 'Demasiadas solicitudes desde esta IP, intenta de nuevo más tarde.'
+    error: 'Too many requests from this IP, please try again later.'
   }
 });
 app.use('/api/', limiter);
@@ -80,14 +80,14 @@ app.get('/', (req, res) => {
   res.json({
     name: 'Malbouche Backend API',
     version: '1.0.0',
-    description: 'Backend API para control de reloj analógico ESP32 con Firestore',
+    description: 'Backend API for ESP32 analog clock control with Firestore',
     status: 'active',
     timestamp: new Date().toISOString(),
     endpoints: {
       auth: '/api/auth',
       users: '/api/users',
-      movimientos: '/api/movimientos',
-      eventos: '/api/eventos',
+      movements: '/api/movements',
+      events: '/api/events',
       health: '/health',
       docs: '/docs'
     }
@@ -152,7 +152,7 @@ app.use(errorHandler);
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
-    error: 'Endpoint no encontrado',
+    error: 'Endpoint not found',
     path: req.originalUrl,
     method: req.method,
     timestamp: new Date().toISOString()
@@ -167,12 +167,12 @@ app.listen(PORT, () => {
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM recibido, cerrando servidor...');
+  console.log('SIGTERM received, shutting down server...');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT recibido, cerrando servidor...');
+  console.log('SIGINT received, shutting down server...');
   process.exit(0);
 });
 

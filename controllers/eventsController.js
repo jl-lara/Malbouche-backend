@@ -21,10 +21,10 @@ export const getAllEvents = async (req, res) => {
       count: eventos.length
     });
   } catch (err) {
-    logger.error('❌ Error obteniendo eventos:', err.message);
+    logger.error('❌ Error fetching events:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error obteniendo eventos',
+      error: 'Error fetching events',
       details: err.message
     });
   }
@@ -41,7 +41,7 @@ export const createEvent = async (req, res) => {
     if (!timeRegex.test(horaInicio) || !timeRegex.test(horaFin)) {
       return res.status(400).json({
         success: false,
-        error: 'Formato de hora inválido. Use HH:MM'
+        error: 'Invalid time format. Use HH:MM'
       });
     }
     
@@ -62,17 +62,17 @@ export const createEvent = async (req, res) => {
     
     res.status(201).json({
       success: true,
-      message: 'Evento creado exitosamente',
+      message: 'Event created successfully',
       data: {
         id: eventoRef.id,
         ...eventoData
       }
     });
   } catch (err) {
-    logger.error('❌ Error creando evento:', err.message);
+    logger.error('❌ Error creating event:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error creando evento',
+      error: 'Error creating event',
       details: err.message
     });
   }
@@ -91,7 +91,7 @@ export const updateEvent = async (req, res) => {
     if (!eventoDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'Evento no encontrado'
+        error: 'Event not found'
       });
     }
     
@@ -103,7 +103,7 @@ export const updateEvent = async (req, res) => {
       if (!timeRegex.test(horaInicio)) {
         return res.status(400).json({
           success: false,
-          error: 'Formato de hora de inicio inválido. Use HH:MM'
+          error: 'Invalid start time format. Use HH:MM'
         });
       }
       updateData.horaInicio = horaInicio;
@@ -113,7 +113,7 @@ export const updateEvent = async (req, res) => {
       if (!timeRegex.test(horaFin)) {
         return res.status(400).json({
           success: false,
-          error: 'Formato de hora de fin inválido. Use HH:MM'
+          error: 'Invalid end time format. Use HH:MM'
         });
       }
       updateData.horaFin = horaFin;
@@ -130,14 +130,14 @@ export const updateEvent = async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Evento actualizado exitosamente',
+      message: 'Event updated successfully',
       data: { id, ...updateData }
     });
   } catch (err) {
-    logger.error('❌ Error actualizando evento:', err.message);
+    logger.error('❌ Error updating event:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error actualizando evento',
+      error: 'Error updating event',
       details: err.message
     });
   }
@@ -155,7 +155,7 @@ export const deleteEvent = async (req, res) => {
     if (!eventoDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'Evento no encontrado'
+        error: 'Event not found'
       });
     }
     
@@ -165,14 +165,14 @@ export const deleteEvent = async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Evento eliminado exitosamente',
+      message: 'Event deleted successfully',
       data: { id }
     });
   } catch (err) {
-    logger.error('❌ Error eliminando evento:', err.message);
+    logger.error('❌ Error deleting event:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error eliminando evento',
+      error: 'Error deleting event',
       details: err.message
     });
   }

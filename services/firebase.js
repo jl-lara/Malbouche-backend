@@ -8,7 +8,7 @@ let db;
 try {
   // Parse Firebase credentials from environment variable
   if (!process.env.FIREBASE_CREDENTIALS) {
-    throw new Error('FIREBASE_CREDENTIALS no encontrada en variables de entorno');
+    throw new Error('FIREBASE_CREDENTIALS not found in environment variables');
   }
 
   const credentials = JSON.parse(process.env.FIREBASE_CREDENTIALS);
@@ -18,7 +18,7 @@ try {
   const missingFields = requiredFields.filter(field => !credentials[field]);
   
   if (missingFields.length > 0) {
-    throw new Error(`Campos faltantes en credenciales: ${missingFields.join(', ')}`);
+    throw new Error(`Missing fields in credentials: ${missingFields.join(', ')}`);
   }
 
   // Initialize Firebase Admin with minimal logging
@@ -30,10 +30,10 @@ try {
   db = admin.firestore();
   
   // Only log critical initialization info
-  console.log('🔥 Firebase Admin inicializado');
+  console.log('🔥 Firebase Admin initialized');
   
 } catch (error) {
-  console.error('❌ Error al inicializar Firebase:', error.message);
+  console.error('❌ Error initializing Firebase:', error.message);
   process.exit(1);
 }
 

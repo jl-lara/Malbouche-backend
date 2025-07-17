@@ -4,10 +4,10 @@ import { validateLogin, validateRegister } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// POST /api/auth/register - Registrar nuevo usuario
+// POST /api/auth/register - Register new user
 router.post('/register', validateRegister, register);
 
-// POST /api/auth/login - Iniciar sesión
+// POST /api/auth/login - Login
 router.post('/login', validateLogin, login);
 
 export default router;

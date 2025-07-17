@@ -11,7 +11,7 @@ export const verifyToken = async (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
-        error: 'Token de acceso requerido'
+        error: 'Access token required'
       });
     }
     
@@ -26,7 +26,7 @@ export const verifyToken = async (req, res, next) => {
     if (!userDoc.exists) {
       return res.status(401).json({
         success: false,
-        error: 'Usuario no encontrado'
+        error: 'User not found'
       });
     }
     
@@ -45,21 +45,22 @@ export const verifyToken = async (req, res, next) => {
     if (err.name === 'JsonWebTokenError') {
       return res.status(401).json({
         success: false,
-        error: 'Token inválido'
+        error: 'Invalid token'
       });
     }
     
     if (err.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
-        error: 'Token expirado'
+        error: 'Token expired'
       });
     }
     
-    logger.error('❌ Error en middleware de autenticación:', err.message);
+    logger.error('❌ Error in authentication middleware:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error de autenticación'
+      error: 'Authentication error',
+      details: err.message
     });
   }
 };

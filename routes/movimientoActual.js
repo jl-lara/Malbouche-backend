@@ -14,7 +14,7 @@ router.post('/:preset', verifyToken, async (req, res) => {
     const updatedMovement = await setCurrentMovement(presetName, velocidad, userId);
     res.json({
       success: true,
-      message: `Movimiento actual actualizado con preset '${presetName}'`,
+      message: `Current movement updated with preset '${presetName}'`,
       data: updatedMovement
     });
   } catch (err) {
@@ -26,7 +26,7 @@ router.post('/:preset', verifyToken, async (req, res) => {
     }
     res.status(500).json({
       success: false,
-      error: 'Error actualizando movimiento actual',
+      error: 'Error updating current movement',
       details: err.message
     });
   }
@@ -40,7 +40,7 @@ router.patch('/velocidad', verifyToken, async (req, res) => {
   if (velocidad === undefined || velocidad === null) {
     return res.status(400).json({
       success: false,
-      error: 'El campo velocidad es requerido'
+      error: 'The field velocidad is required'
     });
   }
 
@@ -48,7 +48,7 @@ router.patch('/velocidad', verifyToken, async (req, res) => {
     const updatedMovement = await updateCurrentMovementSpeed(velocidad, userId);
     res.json({
       success: true,
-      message: 'Velocidad actualizada exitosamente',
+      message: 'Speed updated successfully',
       data: updatedMovement
     });
   } catch (err) {
@@ -60,7 +60,7 @@ router.patch('/velocidad', verifyToken, async (req, res) => {
     }
     res.status(500).json({
       success: false,
-      error: 'Error actualizando velocidad',
+      error: 'Error updating speed',
       details: err.message
     });
   }
