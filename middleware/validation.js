@@ -1,61 +1,61 @@
 import { body, param, validationResult } from 'express-validator';
 
-// Middleware para manejar errores de validación
+// Middleware to handle validation errors
 export const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      error: 'Errores de validación',
+      error: 'Validation errors',
       details: errors.array()
     });
   }
   next();
 };
 
-// Validaciones para usuarios
+// User validations
 export const validateUser = [
   body('nombre')
     .trim()
     .isLength({ min: 2, max: 50 })
-    .withMessage('El nombre debe tener entre 2 y 50 caracteres'),
+    .withMessage('Name must be between 2 and 50 characters'),
   body('apellidos')
     .trim()
     .isLength({ min: 2, max: 50 })
-    .withMessage('Los apellidos deben tener entre 2 y 50 caracteres'),
+    .withMessage('Last name must be between 2 and 50 characters'),
   body('correo')
     .isEmail()
     .normalizeEmail()
-    .withMessage('Debe ser un correo válido'),
+    .withMessage('Must be a valid email'),
   body('puesto')
     .optional()
     .trim()
     .isLength({ max: 100 })
-    .withMessage('El puesto no puede exceder 100 caracteres'),
+    .withMessage('Position cannot exceed 100 characters'),
   body('rol')
     .isIn(['admin', 'usuario', 'vip'])
-    .withMessage('El rol debe ser: admin, usuario o vip'),
+    .withMessage('Role must be: admin, usuario or vip'),
   handleValidationErrors
 ];
 
-// Validaciones para login
+// Login validations
 export const validateLogin = [
   body('correo')
     .isEmail()
     .normalizeEmail()
-    .withMessage('Debe ser un correo válido'),
+    .withMessage('Must be a valid email'),
   body('password')
     .isLength({ min: 6 })
-    .withMessage('La contraseña debe tener al menos 6 caracteres'),
+    .withMessage('Password must be at least 6 characters'),
   handleValidationErrors
 ];
 
-// Validaciones para registro
+// Register validations
 export const validateRegister = [
   body('nombre')
     .trim()
     .isLength({ min: 2, max: 50 })
-    .withMessage('El nombre debe tener entre 2 y 50 caracteres'),
+    .withMessage('Name must be between 2 and 50 characters'),
   body('apellidos')
     .trim()
     .isLength({ min: 2, max: 50 })

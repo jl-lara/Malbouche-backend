@@ -11,19 +11,19 @@ import { validateUser, validateId } from '../middleware/validation.js';
 
 const router = express.Router();
 
-// GET /api/users - Obtener todos los usuarios (solo admin)
+// GET /api/users - Get all users (admin only)
 router.get('/', verifyToken, checkRole('admin'), getAllUsers);
 
-// POST /api/users - Crear nuevo usuario (solo admin)
+// POST /api/users - Create new user (admin only)
 router.post('/', verifyToken, checkRole('admin'), validateUser, createUser);
 
-// GET /api/users/:id - Obtener usuario por ID
+// GET /api/users/:id - Get user by ID
 router.get('/:id', verifyToken, validateId, getUserById);
 
-// PUT /api/users/:id - Actualizar usuario
+// PUT /api/users/:id - Update user
 router.put('/:id', verifyToken, validateId, validateUser, updateUser);
 
-// DELETE /api/users/:id - Eliminar usuario (solo admin)
+// DELETE /api/users/:id - Delete user (admin only)
 router.delete('/:id', verifyToken, checkRole('admin'), validateId, deleteUser);
 
 export default router;

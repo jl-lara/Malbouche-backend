@@ -25,10 +25,10 @@ export const getAllUsers = async (req, res) => {
       count: users.length
     });
   } catch (err) {
-    logger.error('❌ Error obteniendo usuarios:', err.message);
+    logger.error('❌ Error fetching users:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error obteniendo usuarios',
+      error: 'Error fetching users',
       details: err.message
     });
   }
@@ -48,7 +48,7 @@ export const createUser = async (req, res) => {
     if (!existingUser.empty) {
       return res.status(409).json({
         success: false,
-        error: 'El usuario ya existe'
+        error: 'User already exists'
       });
     }
     
@@ -75,17 +75,17 @@ export const createUser = async (req, res) => {
     
     res.status(201).json({
       success: true,
-      message: 'Usuario creado exitosamente',
+      message: 'User created successfully',
       data: {
         id: userRef.id,
         ...userData
       }
     });
   } catch (err) {
-    logger.error('❌ Error creando usuario:', err.message);
+    logger.error('❌ Error creating user:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error creando usuario',
+      error: 'Error creating user',
       details: err.message
     });
   }
@@ -102,7 +102,7 @@ export const getUserById = async (req, res) => {
     if (!userDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'Usuario no encontrado'
+        error: 'User not found'
       });
     }
     
@@ -118,10 +118,10 @@ export const getUserById = async (req, res) => {
       }
     });
   } catch (err) {
-    logger.error('❌ Error obteniendo usuario:', err.message);
+    logger.error('❌ Error fetching user:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error obteniendo usuario',
+      error: 'Error fetching user',
       details: err.message
     });
   }
@@ -140,7 +140,7 @@ export const updateUser = async (req, res) => {
     if (!userDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'Usuario no encontrado'
+        error: 'User not found'
       });
     }
     
@@ -163,14 +163,14 @@ export const updateUser = async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Usuario actualizado exitosamente',
+      message: 'User updated successfully',
       data: { id }
     });
   } catch (err) {
-    logger.error('❌ Error actualizando usuario:', err.message);
+    logger.error('❌ Error updating user:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error actualizando usuario',
+      error: 'Error updating user',
       details: err.message
     });
   }
@@ -188,7 +188,7 @@ export const deleteUser = async (req, res) => {
     if (!userDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'Usuario no encontrado'
+        error: 'User not found'
       });
     }
     
@@ -198,14 +198,14 @@ export const deleteUser = async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Usuario eliminado exitosamente',
+      message: 'User deleted successfully',
       data: { id }
     });
   } catch (err) {
-    logger.error('❌ Error eliminando usuario:', err.message);
+    logger.error('❌ Error deleting user:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error eliminando usuario',
+      error: 'Error deleting user',
       details: err.message
     });
   }

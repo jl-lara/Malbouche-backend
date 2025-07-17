@@ -1,7 +1,7 @@
 import { logger } from '../services/logger.js';
 
 export const errorHandler = (err, req, res, next) => {
-  logger.error('🚨 Error no manejado:', {
+  logger.error('🚨 Unhandled error:', {
     error: err.message,
     stack: err.stack,
     url: req.url,
@@ -12,24 +12,24 @@ export const errorHandler = (err, req, res, next) => {
 
   // Default error response
   let statusCode = 500;
-  let message = 'Error interno del servidor';
+  let message = 'Internal server error';
 
   // Handle specific error types
   if (err.name === 'ValidationError') {
     statusCode = 400;
-    message = 'Error de validación';
+    message = 'Validation error';
   } else if (err.name === 'UnauthorizedError') {
     statusCode = 401;
-    message = 'No autorizado';
+    message = 'Unauthorized';
   } else if (err.name === 'ForbiddenError') {
     statusCode = 403;
-    message = 'Prohibido';
+    message = 'Forbidden';
   } else if (err.name === 'NotFoundError') {
     statusCode = 404;
-    message = 'No encontrado';
+    message = 'Not found';
   } else if (err.name === 'ConflictError') {
     statusCode = 409;
-    message = 'Conflicto';
+    message = 'Conflict';
   }
 
   // Send error response
@@ -53,7 +53,7 @@ export class ValidationError extends Error {
 }
 
 export class UnauthorizedError extends Error {
-  constructor(message = 'No autorizado') {
+  constructor(message = 'Unauthorized') {
     super(message);
     this.name = 'UnauthorizedError';
   }

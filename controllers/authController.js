@@ -20,7 +20,7 @@ export const register = async (req, res) => {
     if (!existingUser.empty) {
       return res.status(409).json({
         success: false,
-        error: 'El usuario ya existe'
+        error: 'User already exists'
       });
     }
     
@@ -44,7 +44,7 @@ export const register = async (req, res) => {
     
     res.status(201).json({
       success: true,
-      message: 'Usuario registrado exitosamente',
+      message: 'User registered successfully',
       data: {
         id: userRef.id,
         nombre,
@@ -55,10 +55,10 @@ export const register = async (req, res) => {
       }
     });
   } catch (err) {
-    logger.error('❌ Error durante el registro:', err.message);
+    logger.error('❌ Error during registration:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error en el registro',
+      error: 'Registration error',
       details: err.message
     });
   }
@@ -80,7 +80,7 @@ export const login = async (req, res) => {
     if (userQuery.empty) {
       return res.status(401).json({
         success: false,
-        error: 'Credenciales inválidas'
+        error: 'Invalid credentials'
       });
     }
     
@@ -93,7 +93,7 @@ export const login = async (req, res) => {
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
-        error: 'Credenciales inválidas'
+        error: 'Invalid credentials'
       });
     }
     
@@ -112,7 +112,7 @@ export const login = async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Login exitoso',
+      message: 'Login successful',
       data: {
         user: {
           id: userDoc.id,
@@ -126,10 +126,10 @@ export const login = async (req, res) => {
       }
     });
   } catch (err) {
-    logger.error('❌ Error durante el login:', err.message);
+    logger.error('❌ Error during login:', err.message);
     res.status(500).json({
       success: false,
-      error: 'Error en el login',
+      error: 'Login error',
       details: err.message
     });
   }
