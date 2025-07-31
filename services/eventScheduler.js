@@ -245,13 +245,13 @@ class EventSchedulerService {
       const job = cron.schedule(cronExpression, async () => {
         logger.info(`🔥 TRIGGER EJECUTADO: Evento "${event.nombreEvento}" (${event.id}) - ${new Date().toISOString()}`);
         await this.executeEvent(event);
-      }, {
-        scheduled: true,
-        timezone: 'America/Mexico_City' // Ajusta según tu zona horaria
       });
 
       // Verificar que el job se creó correctamente
-      logger.info(`📅 Job creado - Estado: ${job.running ? 'ACTIVO' : 'INACTIVO'} para evento ${event.id}`);
+      logger.info(`📅 Job creado para evento ${event.id}`);
+      
+      // Log de configuración del job
+      logger.info(`⚙️ Job config - Expression: ${cronExpression}, Timezone: default`);
       
       // Obtener próxima ejecución (si node-cron lo soporta)
       try {
