@@ -696,9 +696,14 @@ void enviarUltrasonido(String id, float distancia, String fechaISO, String horaS
 void consultarComandosPendientes() {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin("https://malbouche-backend.onrender.com/api/esp32/commands");
+    
+    // Configurar cliente para HTTPS
+    http.begin("https://malbouche-backend.onrender.com/api/scheduler/esp32/commands");
     http.addHeader("Content-Type", "application/json");
-    http.setTimeout(5000); // Timeout de 5 segundos
+    http.addHeader("User-Agent", "ESP32");
+    http.setTimeout(10000); // Timeout de 10 segundos para HTTPS
+    
+    Serial.println("📡 Consultando comandos del backend...");
     
     int responseCode = http.GET();
     
