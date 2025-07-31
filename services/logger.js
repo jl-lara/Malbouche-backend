@@ -1,8 +1,11 @@
 import winston from 'winston';
 
-// Create a minimal logger that only logs critical errors
+// Nivel de log configurable via variable de entorno para debugging
+const logLevel = process.env.LOG_LEVEL || 'info'; // Por defecto info para debugging
+
+// Create a logger that shows info for EventScheduler debugging
 const logger = winston.createLogger({
-  level: 'error', // Changed from 'info' to 'error' - only log errors
+  level: logLevel,
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
@@ -10,21 +13,18 @@ const logger = winston.createLogger({
   ),
   defaultMeta: { service: 'malbouche-backend' },
   transports: [
-    // Only console transport for critical errors
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
         winston.format.simple()
       ),
-      level: 'error' // Only show errors in console
+      level: logLevel
     })
   ]
 });
 
-// Override info, warn, and debug methods to do nothing
-logger.info = () => {};
-logger.warn = () => {};
-logger.debug = () => {};
-logger.verbose = () => {};
+// Log de configuración inicial
+logger.info(`🔧 Logger configurado - Nivel: ${logLevel} (NODE_ENV: ${process.env.NODE_ENV})`);
 
+// Keep the logger functional for EventScheduler
 export { logger };

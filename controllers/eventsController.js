@@ -88,6 +88,15 @@ export const createEvent = async (req, res) => {
     
     const eventoRef = await db.collection('eventos').add(eventoData);
     
+    // Notificar al EventScheduler que recargue eventos
+    try {
+      const { default: eventScheduler } = await import('../services/eventScheduler.js');
+      await eventScheduler.reloadEvents();
+      logger.info('📅 EventScheduler notificado de nuevo evento');
+    } catch (error) {
+      logger.warn('⚠️ Error notificando al EventScheduler:', error.message);
+    }
+    
     // Removed activity logging to logs collection
     
     res.status(201).json({
@@ -156,6 +165,15 @@ export const updateEvent = async (req, res) => {
     
     await db.collection('eventos').doc(id).update(updateData);
     
+    // Notificar al EventScheduler que recargue eventos
+    try {
+      const { default: eventScheduler } = await import('../services/eventScheduler.js');
+      await eventScheduler.reloadEvents();
+      logger.info('📅 EventScheduler notificado de evento actualizado');
+    } catch (error) {
+      logger.warn('⚠️ Error notificando al EventScheduler:', error.message);
+    }
+    
     // Removed activity logging to logs collection
     
     res.json({
@@ -190,6 +208,15 @@ export const deleteEvent = async (req, res) => {
     }
     
     await db.collection('eventos').doc(id).delete();
+    
+    // Notificar al EventScheduler que recargue eventos
+    try {
+      const { default: eventScheduler } = await import('../services/eventScheduler.js');
+      await eventScheduler.reloadEvents();
+      logger.info('📅 EventScheduler notificado de evento eliminado');
+    } catch (error) {
+      logger.warn('⚠️ Error notificando al EventScheduler:', error.message);
+    }
     
     // Removed activity logging to logs collection
     

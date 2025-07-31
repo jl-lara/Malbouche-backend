@@ -1,35 +1,32 @@
 // backend/jobs/scheduler.js
-import schedule from 'node-schedule';
-import { db } from '../firebase.js';
-import { ejecutarMovimiento } from '../utils/arduino.js';
+// DEPRECATED: Este archivo ha sido reemplazado por services/eventScheduler.js
+// 
+// El nuevo EventScheduler proporciona:
+// - Mejor manejo de errores
+// - Comunicación directa con ESP32 via HTTP
+// - Logging detallado
+// - API REST para control desde la app
+// - Auto-recarga de eventos cuando hay cambios
+// - Soporte para múltiples tipos de ESP32
+//
+// Para usar el nuevo sistema, ver:
+// - services/eventScheduler.js
+// - routes/scheduler.js
+//
+// El nuevo scheduler se inicia automáticamente con el servidor.
 
-const dayMap = { D: 0, L: 1, M: 2, X: 3, J: 4, V: 5, S: 6 };
+import { logger } from '../services/logger.js';
 
-function programarEvento(id, event) {
-  const dias = Object.entries(event.days || {})
-    .filter(([_, activo]) => activo)
-    .map(([dia]) => dayMap[dia]);
+logger.info('⚠️ scheduler.js (legacy) cargado - usar services/eventScheduler.js para nueva funcionalidad');
 
-  const [hora, minuto] = event.startTime.split(':').map(Number);
-
-  const regla = new schedule.RecurrenceRule();
-  regla.dayOfWeek = dias;
-  regla.hour = hora;
-  regla.minute = minuto;
-
-  schedule.scheduleJob(id, regla, () => {
-    console.log(`🕒 Ejecutando evento: ${event.eventName}`);
-    ejecutarMovimiento(event);
-  });
+// Funciones legacy mantenidas para compatibilidad
+export function programarEvento(id, event) {
+  logger.warn('programarEvento() es una función legacy - usar EventScheduler service');
 }
 
-function cargarEventos() {
-  db.ref('events').once('value').then(snapshot => {
-    const eventos = snapshot.val() || {};
-    for (const [id, evento] of Object.entries(eventos)) {
-      programarEvento(id, evento);
-    }
-  });
+export function cargarEventos() {
+  logger.warn('cargarEventos() es una función legacy - usar EventScheduler service');
 }
 
-cargarEventos();
+// Re-exportar para compatibilidad si es necesario
+export { default as eventScheduler } from '../services/eventScheduler.js';

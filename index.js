@@ -99,9 +99,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 import movimientosRoutes from './routes/movements.js';
 import movimientoActualRoutes from './routes/movimientoActual.js';
+import schedulerRoutes from './routes/scheduler.js';
 
 app.use('/api/movements', movimientosRoutes);
 app.use('/api/movimiento-actual', movimientoActualRoutes);
+app.use('/api/scheduler', schedulerRoutes);
 import eventsRoutes from './routes/events.js';
 
 app.use('/api/events', eventsRoutes);
@@ -140,6 +142,20 @@ app.get('/docs', (req, res) => {
         'POST /api/events': 'Create new event',
         'PUT /api/events/:id': 'Update event',
         'DELETE /api/events/:id': 'Delete event'
+      },
+      'Scheduler': {
+        'GET /api/scheduler/status': 'Get scheduler status',
+        'GET /api/scheduler/health': 'Complete health check',
+        'GET /api/scheduler/diagnostics': 'System diagnostics for debugging',
+        'POST /api/scheduler/start': 'Start event scheduler',
+        'POST /api/scheduler/stop': 'Stop event scheduler',
+        'POST /api/scheduler/reload': 'Reload events from database',
+        'POST /api/scheduler/toggle': 'Toggle scheduler on/off',
+        'POST /api/scheduler/esp32/configure': 'Configure ESP32 settings',
+        'GET /api/scheduler/esp32/ping': 'Ping ESP32 device',
+        'GET /api/scheduler/esp32/info': 'Get ESP32 device info',
+        'GET /api/scheduler/logs': 'Get execution logs',
+        'POST /api/scheduler/execute/:id': 'Execute event immediately'
       }
     }
   });
@@ -160,9 +176,50 @@ app.use('*', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   // Only log critical startup information
   console.log(`🚀 Malbouche Backend Server running on port ${PORT}`);
+  
+  // Auto-start EventScheduler with health checks
+  try {
+    console.log('🔍 Running system health checks...');
+    
+    // Import health checker
+    const { SystemHealthChecker } = await import('./utils/systemHealthChecker.js');
+    
+    // Run dependency checks
+    const checks = await SystemHealthChecker.checkDependencies();
+    const healthStatus = SystemHealthChecker.logSystemStatus(checks);
+    
+    if (healthStatus === 'ERROR') {
+      console.error('❌ Critical system errors detected - EventScheduler startup aborted');
+      return;
+    }
+    
+    // Wait a bit for Firebase to be ready
+    setTimeout(async () => {
+      console.log('🕒 Auto-starting EventScheduler...');
+      
+      const { default: eventScheduler } = await import('./services/eventScheduler.js');
+      const result = await eventScheduler.start();
+      
+      if (result.success) {
+        console.log(`✅ EventScheduler started: ${result.eventsCount} events scheduled`);
+        
+        // Log ESP32 configuration if available
+        if (result.espIp) {
+          console.log(`📡 ESP32 configured at: ${result.espIp}`);
+        } else {
+          console.log('⚠️ ESP32 not configured - events will not execute until IP is set');
+        }
+      } else {
+        console.log(`⚠️ EventScheduler start failed: ${result.message}`);
+      }
+    }, 3000); // Increased wait time
+    
+  } catch (error) {
+    console.error('❌ Error auto-starting EventScheduler:', error.message);
+  }
 });
 
 // Graceful shutdown

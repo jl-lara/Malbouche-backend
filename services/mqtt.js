@@ -1,5 +1,5 @@
 import mqtt from 'mqtt';
-import { logger } from '../utils/logger.js';
+import { logger } from './logger.js';
 import { db } from '../firebase.js';
 
 let mqttClient = null;
