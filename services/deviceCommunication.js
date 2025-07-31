@@ -16,16 +16,22 @@ export async function sendCommandToESP32(espConfig, movement) {
     }
 
     logger.info(`📡 Enviando comando a ESP32 ${ip} (${type}): "${movement.nombre}"`);
+    logger.info(`🔧 DEBUG - Movimiento completo:`, JSON.stringify(movement, null, 2));
+    logger.info(`🔧 DEBUG - ESP Config:`, JSON.stringify(espConfig, null, 2));
 
     // Detectar si es un preset o movimiento personalizado
     const presets = ['left', 'right', 'crazy', 'normal', 'stop', 'swing'];
     const isPreset = presets.includes(movement.nombre?.toLowerCase());
 
+    logger.info(`🔧 DEBUG - Es preset: ${isPreset}, presets disponibles:`, presets);
+
     let result;
     
     if (isPreset) {
-      result = await sendPresetToESP32(ip, movement, type);
+      logger.info(`🔧 DEBUG - Usando sistema de polling para preset...`);
+      result = await sendPresetViaPolling(movement.nombre.toLowerCase());
     } else {
+      logger.info(`🔧 DEBUG - Llamando sendCustomMovementToESP32...`);
       result = await sendCustomMovementToESP32(ip, movement, type);
     }
 
@@ -35,10 +41,13 @@ export async function sendCommandToESP32(espConfig, movement) {
       logger.error(`❌ Error enviando comando a ESP32 ${ip}: ${result.message}`);
     }
 
+    logger.info(`🔧 DEBUG - Resultado final:`, JSON.stringify(result, null, 2));
+
     return result;
     
   } catch (error) {
     logger.error('❌ Error en comunicación con ESP32:', error.message);
+    logger.error('🔧 DEBUG - Error stack:', error.stack);
     return {
       success: false,
       message: error.message
@@ -51,8 +60,18 @@ export async function sendCommandToESP32(espConfig, movement) {
  */
 async function sendPresetToESP32(ip, movement, deviceType) {
   try {
+    // Test de conectividad previo
+    logger.info(`🔍 Verificando conectividad con ESP32 ${ip}...`);
+    logger.info(`🔧 DEBUG sendPresetToESP32 - Parámetros:`, {
+      ip, 
+      movement: JSON.stringify(movement), 
+      deviceType
+    });
+    
     const speed = movement.movimiento?.horas?.velocidad || movement.velocidad || 50;
     const presetName = movement.nombre.toLowerCase();
+    
+    logger.info(`🔧 DEBUG - Speed: ${speed}, PresetName: ${presetName}`);
     
     let endpoint;
     let payload;
@@ -81,11 +100,13 @@ async function sendPresetToESP32(ip, movement, deviceType) {
     }
 
     logger.info(`📡 Enviando preset "${presetName}" a ${endpoint}`);
+    logger.info(`🔧 Configuración: deviceType=${deviceType}, speed=${speed}`);
 
     let response;
     
     if (deviceType === 'prototype') {
       // Prototipo usa POST con payload
+      logger.info(`📤 POST request con payload:`, payload);
       response = await axios.post(endpoint, payload, {
         timeout: 15000, // Aumentamos timeout a 15 segundos
         headers: { 'Content-Type': 'application/json' },
@@ -95,6 +116,7 @@ async function sendPresetToESP32(ip, movement, deviceType) {
       });
     } else {
       // ESP32 Estándar usa GET simple (como espera el Arduino)
+      logger.info(`📤 GET request simple a ${endpoint}`);
       response = await axios.get(endpoint, {
         timeout: 15000, // Aumentamos timeout a 15 segundos
         validateStatus: function (status) {
@@ -115,13 +137,22 @@ async function sendPresetToESP32(ip, movement, deviceType) {
     };
     
   } catch (error) {
+    // Log detallado del error para diagnóstico
+    logger.error(`❌ Error comunicándose con ESP32 ${ip}:`, {
+      code: error.code,
+      message: error.message,
+      response: error.response?.status,
+      timeout: error.timeout,
+      isAxiosError: error.isAxiosError
+    });
+
     // Manejo específico de tipos de error
     if (error.code === 'ECONNREFUSED') {
       return {
         success: false,
         message: `ESP32 no accesible en ${ip}. Verificar conexión de red.`
       };
-    } else if (error.code === 'ETIMEDOUT') {
+    } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
       return {
         success: false,
         message: `Timeout conectando a ESP32 en ${ip}. Dispositivo puede estar ocupado.`
@@ -131,18 +162,12 @@ async function sendPresetToESP32(ip, movement, deviceType) {
         success: false,
         message: `ESP32 respondió con error: ${error.response.status} - ${error.response.data?.error || error.message}`
       };
+    } else if (error.code === 'ENOTFOUND') {
+      return {
+        success: false,
+        message: `ESP32 ${ip} no encontrado - ¿IP correcta?`
+      };
     } else {
-      // Log más detallado del error
-      if (error.code === 'ECONNREFUSED') {
-        logger.error(`❌ ESP32 ${ip} rechazó la conexión - ¿está encendido y conectado?`);
-      } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
-        logger.error(`❌ ESP32 ${ip} no responde - timeout después de 15 segundos`);
-      } else if (error.code === 'ENOTFOUND') {
-        logger.error(`❌ ESP32 ${ip} no encontrado - ¿IP correcta?`);
-      } else {
-        logger.error(`❌ Error comunicando con ESP32 ${ip}:`, error.message);
-      }
-      
       return {
         success: false,
         message: `Error ejecutando preset: ${error.message}`,
@@ -320,6 +345,42 @@ export async function sendToDevice(device, command) {
     success: false,
     message: 'Función heredada - usar sendCommandToESP32'
   };
+}
+
+/**
+ * Envía un preset usando el sistema de polling (para backend en Render)
+ */
+async function sendPresetViaPolling(presetName) {
+  try {
+    logger.info(`📋 Encolando comando via polling: ${presetName}`);
+    
+    // Determinar la URL base según el entorno
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://malbouche-backend.onrender.com'
+      : 'http://localhost:3000';
+    
+    // Hacer llamada interna al endpoint de cola
+    const response = await axios.post(`${baseUrl}/api/scheduler/esp32/queue-command`, {
+      command: presetName
+    });
+    
+    if (response.status === 200) {
+      return {
+        success: true,
+        message: `Comando "${presetName}" encolado exitosamente via polling`,
+        data: response.data
+      };
+    } else {
+      throw new Error(`Error encolando comando: ${response.status}`);
+    }
+    
+  } catch (error) {
+    logger.error(`❌ Error encolando comando via polling:`, error.message);
+    return {
+      success: false,
+      message: `Error encolando comando: ${error.message}`
+    };
+  }
 }
 
 export function broadcastToAllDevices(command) {

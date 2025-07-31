@@ -662,4 +662,97 @@ router.post('/toggle', verifyToken, async (req, res) => {
   }
 });
 
+// --- Rutas para ESP32 Polling System ---
+
+// Variable global para almacenar comandos pendientes
+let pendingCommand = null;
+
+/**
+ * GET /api/esp32/commands
+ * ESP32 consulta si hay comandos pendientes (sin autenticación)
+ */
+router.get('/esp32/commands', async (req, res) => {
+  try {
+    if (pendingCommand) {
+      logger.info(`📡 Enviando comando pendiente a ESP32: ${pendingCommand}`);
+      const command = pendingCommand;
+      pendingCommand = null; // Limpiar comando después de enviarlo
+      
+      res.json({
+        success: true,
+        command: command,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // No hay comandos pendientes
+      res.status(204).send(); // No Content
+    }
+  } catch (error) {
+    logger.error('❌ Error obteniendo comandos para ESP32:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo comandos',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/esp32/queue-command
+ * Encola un comando para que el ESP32 lo recoja (para uso interno del EventScheduler)
+ */
+router.post('/esp32/queue-command', async (req, res) => {
+  try {
+    const { command } = req.body;
+    
+    if (!command) {
+      return res.status(400).json({
+        success: false,
+        error: 'Comando es requerido'
+      });
+    }
+    
+    pendingCommand = command;
+    logger.info(`📋 Comando encolado para ESP32: ${command}`);
+    
+    res.json({
+      success: true,
+      message: 'Comando encolado exitosamente',
+      command: command
+    });
+    
+  } catch (error) {
+    logger.error('❌ Error encolando comando:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error encolando comando',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/esp32/status
+ * Estado del sistema de polling (para diagnóstico)
+ */
+router.get('/esp32/status', verifyToken, async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        pendingCommand: pendingCommand,
+        pollingEnabled: true,
+        lastUpdate: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    logger.error('❌ Error obteniendo estado ESP32 polling:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error obteniendo estado',
+      details: error.message
+    });
+  }
+});
+
 export default router;

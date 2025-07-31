@@ -8,12 +8,25 @@
 
 
 // --- Configuración WiFi ---
-const char* ssid = "LARA GAMING";
-const char* password = "123456autoliv";
+// IMPORTANTE: Configurar correctamente la red WiFi
+// - El ESP32 debe estar en la misma red que el backend
+// - Si el backend espera el ESP32 en 192.168.0.175, usar esa red
+// - Si usa IP dinámica, verificar que sea la red correcta
+const char* ssid = "TU_RED_WIFI";  // Cambiar por la red donde esté 192.168.0.175
+const char* password = "TU_PASSWORD_WIFI";  // Cambiar por el password correcto
+
+// NOTA: Una vez conectado, verificar la IP asignada al ESP32 en el Serial Monitor
+// La IP mostrada debe coincidir con la configurada en el backend (192.168.0.175)
 
 // --- Pines motores 28BYJ-48 ---
 const int motorHoras[4] = {14, 27, 26, 25};
 const int motorMin[4] = {19, 18, 5, 4};
+
+// --- Variables para consultar comandos del backend ---
+unsigned long ultimaConsultaComandos = 0;
+const unsigned long intervaloConsultaComandos = 5000; // Consultar cada 5 segundos
+bool comandoPendiente = false;
+String comandoActual = "";
 
 // --- Variables para mandar lecturas a mongo ---
 unsigned long ultimoEnvioDHT11 = 0;
@@ -375,6 +388,10 @@ void loop() {
   }
   
   unsigned long ahora = millis();
+  
+  // Manejar cliente HTTP antes de operaciones pesadas
+  server.handleClient();
+  
 if (ahora - ultimoEnvioDHT11 >= intervaloEnvioDHT11) {
   ultimoEnvioDHT11 = ahora;
   float tempAmb = dht.readTemperature();
@@ -384,12 +401,18 @@ if (ahora - ultimoEnvioDHT11 >= intervaloEnvioDHT11) {
     String id = String(millis());
     String fechaISO = obtenerFechaISO();
     String horaStr = obtenerHoraStr();
+    
+    // Manejar cliente HTTP antes de envío de datos
+    server.handleClient();
     enviarDHT11(id, tempAmb, humedad, fechaISO, horaStr);
     
   } else {
     Serial.println("Lectura inválida de DHT11");
   }
 }
+
+  // Manejar cliente HTTP entre envíos de sensores
+  server.handleClient();
 
   // Enviar datos del sensor MLX90614 (temperatura de cuerpo)
   if (ahora - ultimoEnvioMLX >= intervaloEnvioDHT11) {
@@ -400,11 +423,17 @@ if (ahora - ultimoEnvioDHT11 >= intervaloEnvioDHT11) {
       String id = String(millis());
       String fechaISO = obtenerFechaISO();
       String horaStr = obtenerHoraStr();
+      
+      // Manejar cliente HTTP antes de envío
+      server.handleClient();
       enviarMLX(id, tempCuerpo, fechaISO, horaStr);
     } else {
       Serial.println("Lectura inválida de MLX90614");
     }
   }
+
+  // Manejar cliente HTTP entre más operaciones
+  server.handleClient();
 
   // Enviar datos del sensor ultrasonido
   if (ahora - ultimoEnvioUltrasonico >= intervaloEnvioDHT11) {
@@ -415,13 +444,28 @@ if (ahora - ultimoEnvioDHT11 >= intervaloEnvioDHT11) {
       String id = String(millis());
       String fechaISO = obtenerFechaISO();
       String horaStr = obtenerHoraStr();
+      
+      // Manejar cliente HTTP antes de envío
+      server.handleClient();
       enviarUltrasonido(id, distancia, fechaISO, horaStr);
     } else {
       Serial.println("Lectura inválida del sensor ultrasonido");
     }
   }
 
+  // Manejar cliente HTTP antes del switch de motores
+  server.handleClient();
 
+  // --- Consultar comandos pendientes del backend ---
+  if (ahora - ultimaConsultaComandos >= intervaloConsultaComandos) {
+    ultimaConsultaComandos = ahora;
+    consultarComandosPendientes();
+  }
+
+  // --- Ejecutar comando pendiente del backend ---
+  if (comandoPendiente) {
+    ejecutarComandoBackend(comandoActual);
+  }
 
   switch(modoActual) {
     case LEFT:
@@ -542,6 +586,11 @@ void moverPasos(const int motorPins[4], int &stepIndex, int pasos, bool sentidoH
   for (int i=0; i<pasos; i++) {
     girarUnPaso(motorPins, stepIndex, sentidoHorario);
     delay(velocidadPaso);
+    
+    // Manejar cliente HTTP cada 10 pasos para mantener responsividad
+    if (i % 10 == 0) {
+      server.handleClient();
+    }
   }
 }
 
@@ -580,8 +629,9 @@ String obtenerHoraStr() {
 void enviarDHT11(String id, float temperatura, float humedad, String fechaISO, String horaStr) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin("http://172.18.2.82:3000/adminBackend/sensores/dht11"); // AQUI SE DEBE CAMBIAR LA IP
+    http.begin("http://192.168.0.XXX:3000/adminBackend/sensores/dht11"); // CAMBIAR XXX por la IP correcta del backend
     http.addHeader("Content-Type", "application/json");
+    http.setTimeout(3000); // Timeout de 3 segundos para no bloquear
 
     String payload = "{";
     payload += "\"_id\":\"" + id + "\",";
@@ -602,8 +652,9 @@ void enviarDHT11(String id, float temperatura, float humedad, String fechaISO, S
 void enviarMLX(String id, float tempCuerpo, String fechaISO, String horaStr) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin("http://172.18.2.82:3000/adminBackend/sensores/mlx90614"); //AQUI SE DEBE CAMBIAR LA IP
+    http.begin("http://192.168.0.XXX:3000/adminBackend/sensores/mlx90614"); //CAMBIAR XXX por la IP correcta del backend
     http.addHeader("Content-Type", "application/json");
+    http.setTimeout(3000); // Timeout de 3 segundos
 
     String payload = "{";
       payload += "\"_id\":\""         + id                + "\",";  
@@ -624,8 +675,9 @@ void enviarMLX(String id, float tempCuerpo, String fechaISO, String horaStr) {
 void enviarUltrasonido(String id, float distancia, String fechaISO, String horaStr) {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin("http://172.18.2.82:3000/adminBackend/sensores/ultrasonico"); //AQUI SE DEBE CAMBIAR LA IP
+    http.begin("http://192.168.0.XXX:3000/adminBackend/sensores/ultrasonico"); //CAMBIAR XXX por la IP correcta del backend
     http.addHeader("Content-Type", "application/json");
+    http.setTimeout(3000); // Timeout de 3 segundos
     String payload = "{";
       payload += "\"_id\":\""       + id               + "\",";
       payload += "\"distanciaCM\":" + String(distancia, 1) + ",";
@@ -638,6 +690,76 @@ void enviarUltrasonido(String id, float distancia, String fechaISO, String horaS
   } else {
     Serial.println("WiFi no conectado para Ultrasonido");
   }
+}
+
+// --- Función para consultar comandos pendientes desde el backend ---
+void consultarComandosPendientes() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin("https://malbouche-backend.onrender.com/api/esp32/commands");
+    http.addHeader("Content-Type", "application/json");
+    http.setTimeout(5000); // Timeout de 5 segundos
+    
+    int responseCode = http.GET();
+    
+    if (responseCode == 200) {
+      String response = http.getString();
+      Serial.printf("📡 Comando recibido del backend: %s\n", response.c_str());
+      
+      // Parsear respuesta JSON simple
+      if (response.indexOf("\"command\":") != -1) {
+        int startPos = response.indexOf("\"command\":\"") + 11;
+        int endPos = response.indexOf("\"", startPos);
+        if (endPos > startPos) {
+          comandoActual = response.substring(startPos, endPos);
+          comandoPendiente = true;
+          Serial.printf("✅ Comando a ejecutar: %s\n", comandoActual.c_str());
+        }
+      }
+    } else if (responseCode == 204) {
+      // No hay comandos pendientes - esto es normal
+      Serial.println("📡 No hay comandos pendientes");
+    } else {
+      Serial.printf("❌ Error consultando comandos: %d\n", responseCode);
+    }
+    
+    http.end();
+  } else {
+    Serial.println("WiFi no conectado para consultar comandos");
+  }
+}
+
+// --- Función para ejecutar comando recibido del backend ---
+void ejecutarComandoBackend(String comando) {
+  Serial.printf("🎯 Ejecutando comando del backend: %s\n", comando.c_str());
+  
+  if (comando == "left") {
+    modoActual = LEFT;
+    Serial.println("Modo LEFT activado desde backend");
+  } else if (comando == "right") {
+    modoActual = RIGHT;
+    Serial.println("Modo RIGHT activado desde backend");
+  } else if (comando == "crazy") {
+    modoActual = CRAZY;
+    Serial.println("Modo CRAZY activado desde backend");
+  } else if (comando == "normal") {
+    sincronizarHoraReal();
+    modoActual = NORMAL;
+    Serial.println("Modo NORMAL activado desde backend");
+  } else if (comando == "stop") {
+    modoActual = STOP;
+    apagarMotor(motorHoras);
+    apagarMotor(motorMin);
+    Serial.println("Motores detenidos desde backend");
+  } else if (comando == "swing") {
+    modoActual = SWING;
+    Serial.println("Modo SWING activado desde backend");
+  } else {
+    Serial.printf("⚠️ Comando desconocido: %s\n", comando.c_str());
+  }
+  
+  comandoPendiente = false;
+  comandoActual = "";
 }
 
 
