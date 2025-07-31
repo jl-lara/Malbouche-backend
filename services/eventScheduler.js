@@ -228,12 +228,13 @@ class EventSchedulerService {
       
       // Log de información de tiempo
       const now = new Date();
-      const mexicoTime = new Intl.DateTimeFormat('es-MX', {
-        timeZone: 'America/Mexico_City',
+      const tijuanaTime = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Tijuana',
         year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
       }).format(now);
-      logger.info(`🕐 Hora actual (Mexico): ${mexicoTime} - Programando para: ${hours}:${String(minutes).padStart(2, '0')}`);
+      logger.info(`🕐 Hora actual (Tijuana): ${tijuanaTime} - Programando para: ${hours}:${String(minutes).padStart(2, '0')}`);
       
       // Validar expresión cron
       if (!cron.validate(cronExpression)) {
@@ -245,13 +246,16 @@ class EventSchedulerService {
       const job = cron.schedule(cronExpression, async () => {
         logger.info(`🔥 TRIGGER EJECUTADO: Evento "${event.nombreEvento}" (${event.id}) - ${new Date().toISOString()}`);
         await this.executeEvent(event);
+      }, {
+        scheduled: true,
+        timezone: 'America/Tijuana' // Zona horaria de Tijuana, B.C., México
       });
 
       // Verificar que el job se creó correctamente
       logger.info(`📅 Job creado para evento ${event.id}`);
       
       // Log de configuración del job
-      logger.info(`⚙️ Job config - Expression: ${cronExpression}, Timezone: default`);
+      logger.info(`⚙️ Job config - Expression: ${cronExpression}, Timezone: America/Tijuana`);
       
       // Obtener próxima ejecución (si node-cron lo soporta)
       try {
