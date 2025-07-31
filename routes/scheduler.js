@@ -128,6 +128,96 @@ router.post('/reload', verifyToken, async (req, res) => {
 });
 
 /**
+ * GET /api/scheduler/ping-esp32
+ * Hace ping al ESP32 para verificar conectividad
+ */
+router.get('/ping-esp32', verifyToken, async (req, res) => {
+  try {
+    const status = eventScheduler.getStatus();
+    const espIp = status.espConfig?.ip;
+    
+    if (!espIp) {
+      return res.status(400).json({
+        success: false,
+        error: 'No hay IP del ESP32 configurada'
+      });
+    }
+    
+    logger.info(`🏓 Haciendo ping a ESP32: ${espIp}`);
+    
+    const pingResult = await pingESP32(espIp);
+    const infoResult = await getESP32Info(espIp);
+    
+    res.json({
+      success: true,
+      data: {
+        espIp,
+        ping: pingResult,
+        info: infoResult,
+        lastTest: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    logger.error('❌ Error haciendo ping a ESP32:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error haciendo ping a ESP32',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/scheduler/test-movement
+ * Envía un movimiento de prueba al ESP32
+ */
+router.post('/test-movement', verifyToken, async (req, res) => {
+  try {
+    const { movementName = 'left' } = req.body;
+    const status = eventScheduler.getStatus();
+    const espConfig = status.espConfig;
+    
+    if (!espConfig?.ip) {
+      return res.status(400).json({
+        success: false,
+        error: 'No hay IP del ESP32 configurada'
+      });
+    }
+    
+    // Crear movimiento de prueba
+    const testMovement = {
+      nombre: movementName,
+      descripcion: 'Movimiento de prueba'
+    };
+    
+    logger.info(`🧪 Enviando movimiento de prueba "${movementName}" a ESP32 ${espConfig.ip}`);
+    
+    // Importar deviceCommunication dinámicamente
+    const { sendCommandToESP32 } = await import('../services/deviceCommunication.js');
+    const result = await sendCommandToESP32(espConfig, testMovement);
+    
+    res.json({
+      success: result.success,
+      message: result.success ? 'Movimiento enviado exitosamente' : result.message,
+      data: {
+        movement: testMovement,
+        espConfig,
+        result
+      }
+    });
+    
+  } catch (error) {
+    logger.error('❌ Error enviando movimiento de prueba:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error enviando movimiento de prueba',
+      details: error.message
+    });
+  }
+});
+
+/**
  * POST /api/scheduler/test-event
  * Crea un evento de prueba que se ejecuta en 2 minutos
  */

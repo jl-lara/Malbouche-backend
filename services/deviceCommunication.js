@@ -83,7 +83,7 @@ async function sendPresetToESP32(ip, movement, deviceType) {
     logger.info(`📡 Enviando preset "${presetName}" a ${endpoint} con payload:`, payload);
 
     const response = await axios.post(endpoint, payload, {
-      timeout: 15000, // Aumentado timeout
+      timeout: 8000, // Reducido timeout para fallar más rápido
       headers: { 'Content-Type': 'application/json' },
       // Manejar errores de red específicos
       validateStatus: function (status) {
@@ -120,9 +120,21 @@ async function sendPresetToESP32(ip, movement, deviceType) {
         message: `ESP32 respondió con error: ${error.response.status} - ${error.response.data?.error || error.message}`
       };
     } else {
+      // Log más detallado del error
+      if (error.code === 'ECONNREFUSED') {
+        logger.error(`❌ ESP32 ${ip} rechazó la conexión - ¿está encendido y conectado?`);
+      } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+        logger.error(`❌ ESP32 ${ip} no responde - timeout después de 8 segundos`);
+      } else if (error.code === 'ENOTFOUND') {
+        logger.error(`❌ ESP32 ${ip} no encontrado - ¿IP correcta?`);
+      } else {
+        logger.error(`❌ Error comunicando con ESP32 ${ip}:`, error.message);
+      }
+      
       return {
         success: false,
-        message: `Error ejecutando preset: ${error.message}`
+        message: `Error ejecutando preset: ${error.message}`,
+        errorCode: error.code
       };
     }
   }
@@ -185,7 +197,7 @@ async function sendCustomMovementToESP32(ip, movement, deviceType) {
     logger.info(`📡 Enviando movimiento personalizado a ${endpoint}:`, payload);
 
     const response = await axios.post(endpoint, payload, {
-      timeout: 15000,
+      timeout: 8000, // Reducido timeout
       headers: { 'Content-Type': 'application/json' },
       validateStatus: function (status) {
         return status < 500;
