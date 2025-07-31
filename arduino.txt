@@ -1,0 +1,667 @@
+#include <WiFi.h>
+#include <WebServer.h>
+#include <time.h>
+#include <Wire.h>
+#include <Adafruit_MLX90614.h>
+#include <DHT.h>
+#include <HTTPClient.h>
+
+
+// --- Configuración WiFi ---
+const char* ssid = "LARA GAMING";
+const char* password = "123456autoliv";
+
+// --- Pines motores 28BYJ-48 ---
+const int motorHoras[4] = {14, 27, 26, 25};
+const int motorMin[4] = {19, 18, 5, 4};
+
+// --- Variables para mandar lecturas a mongo ---
+unsigned long ultimoEnvioDHT11 = 0;
+unsigned long ultimoEnvioMLX = 0;
+unsigned long ultimoEnvioUltrasonico = 0;
+const unsigned long intervaloEnvioDHT11 = 3600000; // 10 minutos en ms
+
+// --- Secuencia medio paso ---
+const int steps[8][4] = {
+  {1,0,0,0},
+  {1,1,0,0},
+  {0,1,0,0},
+  {0,1,1,0},
+  {0,0,1,0},
+  {0,0,1,1},
+  {0,0,0,1},
+  {1,0,0,1}
+};
+
+WebServer server(80);
+
+// --- Parámetros reloj ---
+const int pasosPorVuelta = 512;
+const int pasosPorHora = pasosPorVuelta / 12;     // ~42.6
+const int pasosPorMinuto = pasosPorVuelta / 60;   // ~8.53
+
+// Variables de estado
+enum Modo { STOP, LEFT, RIGHT, CRAZY, NORMAL, SWING };
+Modo modoActual = STOP;
+
+// Posiciones actuales de pasos
+int posHoras = 0;
+int posMin = 0;
+
+// Índices de paso para la secuencia medio paso (para mover motores)
+int stepIndexHoras = 0;
+int stepIndexMin = 0;
+
+// Para control de avance automático en modo NORMAL
+unsigned long ultimoAvance = 0;
+const unsigned long intervaloAvanceMs = 1000; // cada segundo avanzamos segundos
+
+// Para modo SWING
+bool swingSentido = true;
+unsigned long swingUltimoMovimiento = 0;
+const unsigned long swingIntervalo = 500; // 0.5 segundos
+
+// Velocidad (delay ms) entre pasos, default 2 ms
+int velocidadPaso = 2;
+
+// --- Variables para movimiento personalizado ---
+bool movimientoPersonalizadoActivo = false;
+unsigned long inicioMovimientoPersonalizado = 0;
+unsigned long duracionMovimientoPersonalizado = 0;
+String dirHorasPersonalizado = "derecha";
+String dirMinutosPersonalizado = "derecha";
+int velHorasPersonalizado = 50;
+int velMinutosPersonalizado = 50;
+
+// --- Sensores y LED RGB ---
+#define DHTPIN 32
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+#define TRIG_PIN 33
+#define ECHO_PIN 15
+
+#define LED_ROJO 13
+#define LED_VERDE 12
+#define LED_AZUL 23
+
+Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+
+void setupSensoresYLeds() {
+  dht.begin();
+  mlx.begin();
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  pinMode(LED_ROJO, OUTPUT);
+  pinMode(LED_VERDE, OUTPUT);
+  pinMode(LED_AZUL, OUTPUT);
+}
+
+float medirDistanciaCM() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  long duracion = pulseIn(ECHO_PIN, HIGH);
+  return duracion * 0.034 / 2;
+}
+
+void setColorRGB(int r, int g, int b) {
+  analogWrite(LED_ROJO, r);
+  analogWrite(LED_VERDE, g);
+  analogWrite(LED_AZUL, b);
+}
+
+void actualizarRGBsegunAmbiente() {
+  float tempAmbiente = dht.readTemperature();
+  float humedad = dht.readHumidity();
+  float tempCuerpo = mlx.readObjectTempC();
+  float distancia = medirDistanciaCM();
+
+  bool calido = tempCuerpo >= 30.0;
+
+  if (calido) {
+    // Colores cálidos
+    if (distancia < 10) {
+      setColorRGB(255, 0, 0);       // Rojo
+    } else if (distancia < 20) {
+      setColorRGB(0, 255, 0);       // Verde
+    } else {
+      setColorRGB(255, 255, 0);     // Amarillo
+    }
+  } else {
+    // Colores fríos
+    if (distancia < 10) {
+      setColorRGB(0, 0, 255);       // Azul
+    } else if (distancia < 20) {
+      setColorRGB(0, 255, 255);     // Celeste
+    } else {
+      setColorRGB(128, 0, 128);     // Morado
+    }
+  }
+
+  Serial.printf("TempAmb: %.1f °C, Humedad: %.1f %% | TempCuerpo: %.1f °C | Distancia: %.1f cm\n",
+    tempAmbiente, humedad, tempCuerpo, distancia);
+}
+
+// --- Declaración funciones motores ---
+void girarUnPaso(const int motorPins[4], int &stepIndex, bool sentidoHorario);
+void moverPasos(const int motorPins[4], int &stepIndex, int pasos, bool sentidoHorario);
+void moverMotorVelocidad(const int motorPins[4], int &stepIndex, int direccion, int velocidad);
+void apagarMotor(const int motorPins[4]);
+void sincronizarHoraReal();
+
+// --- Funciones helper para parsear JSON ---
+String extraerValorJSON(String json, String clave) {
+  int inicio = json.indexOf("\"" + clave + "\":");
+  if (inicio == -1) return "";
+  
+  inicio = json.indexOf(":", inicio) + 1;
+  while (inicio < json.length() && (json.charAt(inicio) == ' ' || json.charAt(inicio) == '\t')) inicio++;
+  
+  if (json.charAt(inicio) == '"') {
+    // Valor string
+    inicio++;
+    int fin = json.indexOf("\"", inicio);
+    return json.substring(inicio, fin);
+  } else {
+    // Valor numérico
+    int fin = inicio;
+    while (fin < json.length() && (isDigit(json.charAt(fin)) || json.charAt(fin) == '.')) fin++;
+    return json.substring(inicio, fin);
+  }
+}
+
+String extraerObjetoJSON(String json, String clave) {
+  String buscar = "\"" + clave + "\":{";
+  int inicio = json.indexOf(buscar);
+  if (inicio == -1) return "";
+  
+  inicio += buscar.length() - 1; // Incluir la llave de apertura
+  int contadorLlaves = 1;
+  int pos = inicio + 1;
+  
+  while (pos < json.length() && contadorLlaves > 0) {
+    if (json.charAt(pos) == '{') contadorLlaves++;
+    else if (json.charAt(pos) == '}') contadorLlaves--;
+    pos++;
+  }
+  
+  return json.substring(inicio, pos);
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  // Configurar pines motores
+  for (int i=0; i<4; i++) {
+    pinMode(motorHoras[i], OUTPUT);
+    pinMode(motorMin[i], OUTPUT);
+    digitalWrite(motorHoras[i], LOW);
+    digitalWrite(motorMin[i], LOW);
+  }
+
+  // Iniciar sensores y LEDs
+  setupSensoresYLeds();
+
+  // Conectar WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Conectando a WiFi...");
+  while(WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nConectado!");
+  Serial.println("=== INFORMACIÓN DE RED ===");
+  Serial.print("IP asignada: ");
+  Serial.println(WiFi.localIP());
+  Serial.print("SSID: ");
+  Serial.println(WiFi.SSID());
+  Serial.print("Intensidad de señal: ");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm");
+  Serial.println("==========================");
+
+  // Configurar NTP (GMT -6 sin horario verano)
+  configTzTime("PST8PDT", "pool.ntp.org", "time.nist.gov");
+
+  // Rutas servidor web
+  server.on("/", []() {
+    String html = "<h1>Reloj 28BYJ-48 ESP32</h1>";
+    html += "<p>Modos disponibles: /left /right /crazy /normal /stop /swing</p>";
+    html += "<p>Ajustar velocidad: /speed?value=1-100</p>";
+    html += "<p>Movimiento personalizado: POST /custom con JSON</p>";
+    html += "<p>Ping: /ping</p>";
+    server.send(200, "text/html", html);
+  });
+
+  server.on("/left", [](){
+    modoActual = LEFT;
+    server.send(200, "text/plain", "Modo LEFT activado");
+    Serial.println("Modo LEFT activado");
+  });
+
+  server.on("/right", [](){
+    modoActual = RIGHT;
+    server.send(200, "text/plain", "Modo RIGHT activado");
+    Serial.println("Modo RIGHT activado");
+  });
+
+  server.on("/crazy", [](){
+    modoActual = CRAZY;
+    server.send(200, "text/plain", "Modo CRAZY activado");
+    Serial.println("Modo CRAZY activado");
+  });
+
+  server.on("/normal", [](){
+    sincronizarHoraReal(); // sincroniza al cambiar a modo normal
+    modoActual = NORMAL;
+    server.send(200, "text/plain", "Modo NORMAL activado");
+    Serial.println("Modo NORMAL activado");
+  });
+
+  server.on("/stop", [](){
+    modoActual = STOP;
+    apagarMotor(motorHoras);
+    apagarMotor(motorMin);
+    server.send(200, "text/plain", "Motores detenidos");
+    Serial.println("Motores detenidos");
+  });
+
+  server.on("/swing", [](){
+    modoActual = SWING;
+    server.send(200, "text/plain", "Modo SWING activado");
+    Serial.println("Modo SWING activado");
+  });
+
+  // Endpoint de ping para pruebas
+  server.on("/ping", [](){
+    server.send(200, "application/json", "{\"status\":\"ok\",\"message\":\"Arduino ESP32 funcionando\"}");
+    Serial.println("Ping recibido");
+  });
+
+  // Ruta para ajustar velocidad
+  server.on("/speed", []() {
+    if (server.hasArg("value")) {
+      int val = server.arg("value").toInt();
+      if (val < 1) val = 1;
+      if (val > 100) val = 100;
+      // Mapear valor 1-100 a delay 10-1 ms (velocidad inversa)
+      velocidadPaso = map(val, 1, 100, 10, 1);
+      server.send(200, "text/plain", "Velocidad ajustada a " + String(val));
+      Serial.printf("Velocidad paso ajustada a %d (delay ms: %d)\n", val, velocidadPaso);
+    } else {
+      server.send(400, "text/plain", "Falta parámetro value");
+    }
+  });
+
+  // Ruta para movimiento personalizado
+  server.on("/custom", HTTP_POST, [](){
+    if (server.hasArg("plain")) {
+      String body = server.arg("plain");
+      
+      Serial.println("=== MOVIMIENTO PERSONALIZADO RECIBIDO ===");
+      Serial.println(body);
+      
+      // Extraer valores generales
+      String nombre = extraerValorJSON(body, "nombre");
+      if (nombre == "") nombre = "Movimiento personalizado";
+      
+      String direccionGeneral = extraerValorJSON(body, "direccionGeneral");
+      String velocidadGeneral = extraerValorJSON(body, "velocidadGeneral");
+      
+      // Extraer movimiento.horas
+      String movimientoJSON = extraerObjetoJSON(body, "movimiento");
+      String dirHorasJSON = extraerObjetoJSON(movimientoJSON, "horas");
+      dirHorasPersonalizado = extraerValorJSON(dirHorasJSON, "direccion");
+      if (dirHorasPersonalizado == "") dirHorasPersonalizado = direccionGeneral != "" ? direccionGeneral : "derecha";
+      
+      String velHorasStr = extraerValorJSON(dirHorasJSON, "velocidad");
+      velHorasPersonalizado = (velHorasStr == "") ? (velocidadGeneral != "" ? velocidadGeneral.toInt() : 50) : velHorasStr.toInt();
+      
+      // Extraer movimiento.minutos
+      String dirMinutosJSON = extraerObjetoJSON(movimientoJSON, "minutos");
+      dirMinutosPersonalizado = extraerValorJSON(dirMinutosJSON, "direccion");
+      if (dirMinutosPersonalizado == "") dirMinutosPersonalizado = direccionGeneral != "" ? direccionGeneral : "derecha";
+      
+      String velMinutosStr = extraerValorJSON(dirMinutosJSON, "velocidad");
+      velMinutosPersonalizado = (velMinutosStr == "") ? (velocidadGeneral != "" ? velocidadGeneral.toInt() : 50) : velMinutosStr.toInt();
+      
+      String duracionStr = extraerValorJSON(body, "duracion");
+      int duracionSeg = (duracionStr == "") ? 60 : duracionStr.toInt();
+      
+      // Validar valores
+      velHorasPersonalizado = constrain(velHorasPersonalizado, 1, 100);
+      velMinutosPersonalizado = constrain(velMinutosPersonalizado, 1, 100);
+      duracionSeg = constrain(duracionSeg, 1, 300);
+      
+      Serial.printf("Ejecutando: %s\n", nombre.c_str());
+      Serial.printf("Horas: %s a velocidad %d\n", dirHorasPersonalizado.c_str(), velHorasPersonalizado);
+      Serial.printf("Minutos: %s a velocidad %d\n", dirMinutosPersonalizado.c_str(), velMinutosPersonalizado);
+      Serial.printf("Duración: %d segundos\n", duracionSeg);
+      
+      // Detener modo actual
+      modoActual = STOP;
+      apagarMotor(motorHoras);
+      apagarMotor(motorMin);
+      
+      // Configurar movimiento personalizado
+      duracionMovimientoPersonalizado = duracionSeg * 1000;
+      inicioMovimientoPersonalizado = millis();
+      movimientoPersonalizadoActivo = true;
+      
+      server.send(200, "application/json", "{\"success\":true,\"message\":\"Movimiento personalizado iniciado\"}");
+      Serial.println("Movimiento personalizado iniciado");
+      
+    } else {
+      server.send(400, "application/json", "{\"success\":false,\"error\":\"No se recibieron datos\"}");
+    }
+  });
+
+  server.begin();
+}
+
+void loop() {
+  server.handleClient();
+
+  // Actualizar colores LED según sensores
+  actualizarRGBsegunAmbiente();
+  
+  unsigned long ahora = millis();
+if (ahora - ultimoEnvioDHT11 >= intervaloEnvioDHT11) {
+  ultimoEnvioDHT11 = ahora;
+  float tempAmb = dht.readTemperature();
+  float humedad = dht.readHumidity();
+
+  if (!isnan(tempAmb) && !isnan(humedad)) {
+    String id = String(millis());
+    String fechaISO = obtenerFechaISO();
+    String horaStr = obtenerHoraStr();
+    enviarDHT11(id, tempAmb, humedad, fechaISO, horaStr);
+    
+  } else {
+    Serial.println("Lectura inválida de DHT11");
+  }
+}
+
+  // Enviar datos del sensor MLX90614 (temperatura de cuerpo)
+  if (ahora - ultimoEnvioMLX >= intervaloEnvioDHT11) {
+    ultimoEnvioMLX = ahora;
+    float tempCuerpo = mlx.readObjectTempC();
+
+    if (!isnan(tempCuerpo)) {
+      String id = String(millis());
+      String fechaISO = obtenerFechaISO();
+      String horaStr = obtenerHoraStr();
+      enviarMLX(id, tempCuerpo, fechaISO, horaStr);
+    } else {
+      Serial.println("Lectura inválida de MLX90614");
+    }
+  }
+
+  // Enviar datos del sensor ultrasonido
+  if (ahora - ultimoEnvioUltrasonico >= intervaloEnvioDHT11) {
+    ultimoEnvioUltrasonico = ahora;
+    float distancia = medirDistanciaCM();
+
+    if (!isnan(distancia)) {
+      String id = String(millis());
+      String fechaISO = obtenerFechaISO();
+      String horaStr = obtenerHoraStr();
+      enviarUltrasonido(id, distancia, fechaISO, horaStr);
+    } else {
+      Serial.println("Lectura inválida del sensor ultrasonido");
+    }
+  }
+
+
+
+  switch(modoActual) {
+    case LEFT:
+      girarUnPaso(motorHoras, stepIndexHoras, true);
+      delay(velocidadPaso);
+      girarUnPaso(motorMin, stepIndexMin, true);
+      delay(velocidadPaso);
+      break;
+
+    case RIGHT:
+      girarUnPaso(motorHoras, stepIndexHoras, false);
+      delay(velocidadPaso);
+      girarUnPaso(motorMin, stepIndexMin, false);
+      delay(velocidadPaso);
+      break;
+
+    case CRAZY:
+      girarUnPaso(motorHoras, stepIndexHoras, true);
+      delay(velocidadPaso);
+      girarUnPaso(motorMin, stepIndexMin, false);
+      delay(velocidadPaso);
+      break;
+
+    case NORMAL:
+      {
+        unsigned long now = millis();
+        if (now - ultimoAvance >= intervaloAvanceMs) {
+          ultimoAvance = now;
+
+          struct tm timeinfo;
+          if (getLocalTime(&timeinfo)) {
+            int hora = timeinfo.tm_hour % 12;
+            int minuto = timeinfo.tm_min;
+
+            int pasosHoraEsperado = hora * pasosPorHora + (minuto * pasosPorHora / 60);
+            int pasosMinutoEsperado = minuto * pasosPorMinuto;
+
+            int deltaHoras = pasosHoraEsperado - posHoras;
+            if (deltaHoras != 0) {
+              bool dirHoras = (deltaHoras > 0);
+              moverPasos(motorHoras, stepIndexHoras, abs(deltaHoras), dirHoras);
+              posHoras = pasosHoraEsperado;
+            }
+
+            int deltaMinutos = pasosMinutoEsperado - posMin;
+            if (deltaMinutos != 0) {
+              bool dirMin = (deltaMinutos > 0);
+              moverPasos(motorMin, stepIndexMin, abs(deltaMinutos), dirMin);
+              posMin = pasosMinutoEsperado;
+            }
+          } else {
+            Serial.println("No se pudo obtener hora NTP");
+          }
+        }
+      }
+      break;
+
+    case SWING:
+      {
+        static bool sentido = true;
+        static unsigned long lastMove = 0;
+        const unsigned long intervalo = 100;
+        if (millis() - lastMove > intervalo) {
+          moverPasos(motorHoras, stepIndexHoras, 5, sentido);
+          moverPasos(motorMin, stepIndexMin, 5, sentido);
+          sentido = !sentido;
+          lastMove = millis();
+        }
+      }
+      break;
+
+    case STOP:
+      apagarMotor(motorHoras);
+      apagarMotor(motorMin);
+      delay(100);
+      break;
+  }
+
+  // --- Manejo de movimiento personalizado ---
+  if (movimientoPersonalizadoActivo) {
+    // Verificar si el tiempo de movimiento personalizado ha terminado
+    if (millis() - inicioMovimientoPersonalizado >= duracionMovimientoPersonalizado) {
+      movimientoPersonalizadoActivo = false;
+      apagarMotor(motorHoras);
+      apagarMotor(motorMin);
+      Serial.println("Movimiento personalizado completado");
+    } else {
+      // Ejecutar movimiento personalizado para horas
+      if (dirHorasPersonalizado == "derecha") {
+        moverMotorVelocidad(motorHoras, stepIndexHoras, 1, velHorasPersonalizado);
+      } else if (dirHorasPersonalizado == "izquierda") {
+        moverMotorVelocidad(motorHoras, stepIndexHoras, -1, velHorasPersonalizado);
+      }
+      
+      // Ejecutar movimiento personalizado para minutos
+      if (dirMinutosPersonalizado == "derecha") {
+        moverMotorVelocidad(motorMin, stepIndexMin, 1, velMinutosPersonalizado);
+      } else if (dirMinutosPersonalizado == "izquierda") {
+        moverMotorVelocidad(motorMin, stepIndexMin, -1, velMinutosPersonalizado);
+      }
+    }
+  }
+}
+
+// --- Función para girar 1 paso ---
+void girarUnPaso(const int motorPins[4], int &stepIndex, bool sentidoHorario) {
+  stepIndex = sentidoHorario ? (stepIndex + 1) % 8 : (stepIndex + 7) % 8;
+  for (int i=0; i<4; i++) {
+    digitalWrite(motorPins[i], steps[stepIndex][i]);
+  }
+}
+
+// --- Función para mover N pasos ---
+void moverPasos(const int motorPins[4], int &stepIndex, int pasos, bool sentidoHorario) {
+  for (int i=0; i<pasos; i++) {
+    girarUnPaso(motorPins, stepIndex, sentidoHorario);
+    delay(velocidadPaso);
+  }
+}
+
+// --- Función para mover motor con velocidad específica ---
+void moverMotorVelocidad(const int motorPins[4], int &stepIndex, int direccion, int velocidad) {
+  bool sentidoHorario = (direccion > 0);
+  int delayVelocidad = map(velocidad, 1, 100, 20, 1); // Mapear velocidad a delay
+  girarUnPaso(motorPins, stepIndex, sentidoHorario);
+  delay(delayVelocidad);
+}
+
+// --- Apagar motor (todos pines LOW) ---
+void apagarMotor(const int motorPins[4]) {
+  for (int i=0; i<4; i++) {
+    digitalWrite(motorPins[i], LOW);
+  }
+}
+
+// --- funciones para obtener la fecha y la hora reales en las lecturas ---
+String obtenerFechaISO() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) return "";
+  char fecha[25];
+  strftime(fecha, sizeof(fecha), "%Y-%m-%dT%H:%M:%S.000Z", &timeinfo);
+  return String(fecha);
+}
+
+String obtenerHoraStr() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) return "";
+  char hora[10];
+  strftime(hora, sizeof(hora), "%H:%M:%S", &timeinfo);
+  return String(hora);
+}
+
+void enviarDHT11(String id, float temperatura, float humedad, String fechaISO, String horaStr) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin("http://172.18.2.82:3000/adminBackend/sensores/dht11"); // AQUI SE DEBE CAMBIAR LA IP
+    http.addHeader("Content-Type", "application/json");
+
+    String payload = "{";
+    payload += "\"_id\":\"" + id + "\",";
+    payload += "\"temperaturaC\":" + String(temperatura, 1) + ",";
+    payload += "\"humedad\":" + String(humedad, 1) + ",";
+    payload += "\"fecha\":\"" + fechaISO + "\",";
+    payload += "\"hora\":\"" + horaStr + "\"";
+    payload += "}";
+
+    int responseCode = http.POST(payload);
+    Serial.printf("DHT11 → Código respuesta: %d\n", responseCode);
+    http.end();
+  } else {
+    Serial.println("WiFi no conectado para DHT11");
+  }
+}
+
+void enviarMLX(String id, float tempCuerpo, String fechaISO, String horaStr) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin("http://172.18.2.82:3000/adminBackend/sensores/mlx90614"); //AQUI SE DEBE CAMBIAR LA IP
+    http.addHeader("Content-Type", "application/json");
+
+    String payload = "{";
+      payload += "\"_id\":\""         + id                + "\",";  
+      payload += "\"temperaturaC\":"  + String(tempCuerpo, 1) + ","; // <== Este es el cambio clave
+      payload += "\"fecha\":\""       + fechaISO          + "\",";
+      payload += "\"hora\":\""        + horaStr           + "\"";
+    payload += "}";
+
+    int code = http.POST(payload);
+    Serial.printf("MLX90614 → Código: %d\n", code);
+    http.end();
+  } else {
+    Serial.println("WiFi no conectado para MLX90614");
+  }
+}
+
+
+void enviarUltrasonido(String id, float distancia, String fechaISO, String horaStr) {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    http.begin("http://172.18.2.82:3000/adminBackend/sensores/ultrasonico"); //AQUI SE DEBE CAMBIAR LA IP
+    http.addHeader("Content-Type", "application/json");
+    String payload = "{";
+      payload += "\"_id\":\""       + id               + "\",";
+      payload += "\"distanciaCM\":" + String(distancia, 1) + ",";
+      payload += "\"fecha\":\""     + fechaISO         + "\",";
+      payload += "\"hora\":\""      + horaStr          + "\"";
+    payload += "}";
+    int code = http.POST(payload);
+    Serial.printf("Ultrasonido → Código: %d\n", code);
+    http.end();
+  } else {
+    Serial.println("WiFi no conectado para Ultrasonido");
+  }
+}
+
+
+
+// --- Sincronizar la hora real ---
+void sincronizarHoraReal() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("No se pudo obtener hora NTP para sincronizar");
+    return;
+  }
+
+  int hora = timeinfo.tm_hour % 12;
+  int minuto = timeinfo.tm_min;
+
+  int pasosHoraEsperado = hora * pasosPorHora + (minuto * pasosPorHora / 60);
+  int pasosMinutoEsperado = minuto * pasosPorMinuto;
+
+  int deltaHoras = pasosHoraEsperado - posHoras;
+  int deltaMinutos = pasosMinutoEsperado - posMin;
+
+  if (deltaHoras != 0) {
+    bool dirHoras = (deltaHoras > 0);
+    moverPasos(motorHoras, stepIndexHoras, abs(deltaHoras), dirHoras);
+    posHoras = pasosHoraEsperado;
+  }
+  if (deltaMinutos != 0) {
+    bool dirMin = (deltaMinutos > 0);
+    moverPasos(motorMin, stepIndexMin, abs(deltaMinutos), dirMin);
+    posMin = pasosMinutoEsperado;
+  }
+
+  Serial.printf("Sincronizado a %02d:%02d\n", hora, minuto);
+}

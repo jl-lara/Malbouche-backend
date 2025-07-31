@@ -199,11 +199,20 @@ async function sendCustomMovementToESP32(ip, movement, deviceType) {
       endpoint = `http://${ip}/custom`;
       payload = {
         nombre: movement.nombre || 'Movimiento personalizado',
-        dirHoras: horas.direccion || 'horario',
-        dirMinutos: minutos.direccion || 'horario',
-        velHoras: horas.velocidad !== undefined ? horas.velocidad : 50,
-        velMinutos: minutos.velocidad !== undefined ? minutos.velocidad : 50,
-        duracion: movement.duracion || 60
+        duracion: movement.duracion || 60,
+        movimiento: {
+          direccionGeneral: movement.movimiento?.direccionGeneral || null,
+          horas: {
+            direccion: horas.direccion || 'derecha',
+            velocidad: horas.velocidad !== undefined ? horas.velocidad : 50,
+            angulo: horas.angulo || null
+          },
+          minutos: {
+            direccion: minutos.direccion || 'derecha', 
+            velocidad: minutos.velocidad !== undefined ? minutos.velocidad : 50,
+            angulo: minutos.angulo || null
+          }
+        }
       };
     }
 
