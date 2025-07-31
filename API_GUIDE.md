@@ -237,11 +237,36 @@ El campo `angulo` permite un control preciso del recorrido de las manecillas del
 - **Menor a 360**: Movimiento parcial que permite que la manecilla se detenga y regrese en un punto específico
 - **Uso**: Permite personalizar mejor los movimientos y crear variaciones más complejas
 
+
 ### 4. Actualizar Movimiento
 **Endpoint:** `PUT /api/movements/:id`  
 **Autenticación:** Requerida  
 
-**Body:** Mismos campos que crear movimiento (todos opcionales)
+**Body:** Puedes enviar uno o más de los siguientes campos (todos son opcionales, solo se actualizarán los que envíes):
+
+```json
+{
+  "nombre": "Nuevo nombre opcional",
+  "duracion": 45,
+  "movimiento": {
+    "direccionGeneral": "izquierda",
+    "horas": {
+      "direccion": "izquierda",
+      "velocidad": 70,
+      "angulo": 270
+    },
+    "minutos": {
+      "direccion": "derecha",
+      "velocidad": 85,
+      "angulo": 120
+    }
+  }
+}
+```
+
+**Notas:**
+- Todos los campos son opcionales, pero si se envía alguno, debe cumplir con las validaciones del modelo.
+- Si solo deseas actualizar un campo, puedes enviar únicamente ese campo en el body.
 
 ### 5. Eliminar Movimiento
 **Endpoint:** `DELETE /api/movements/:id`  
