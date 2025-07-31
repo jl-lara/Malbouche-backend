@@ -7,6 +7,7 @@ import { verifyToken } from '../middleware/auth.js';
 import { logger } from '../services/logger.js';
 import eventScheduler from '../services/eventScheduler.js';
 import { pingESP32, getESP32Info } from '../services/deviceCommunication.js';
+import { db } from '../services/firebase.js';
 
 const router = express.Router();
 
@@ -121,6 +122,75 @@ router.post('/reload', verifyToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Error recargando eventos',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/scheduler/test-event
+ * Crea un evento de prueba que se ejecuta en 2 minutos
+ */
+router.post('/test-event', verifyToken, async (req, res) => {
+  try {
+    // Crear evento que se ejecute en 2 minutos
+    const now = new Date();
+    const executeTime = new Date(now.getTime() + 2 * 60 * 1000); // +2 minutos
+    const hours = executeTime.getHours();
+    const minutes = executeTime.getMinutes();
+    const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    
+    // Obtener día actual en formato abreviado inglés
+    const dayNames = ['Su', 'M', 'T', 'W', 'Th', 'F', 'Sa'];
+    const currentDay = dayNames[executeTime.getDay()];
+    
+    logger.info(`🧪 Creando evento de prueba para ejecutarse a las ${timeString} (${currentDay})`);
+    
+    const testEventData = {
+      nombreEvento: `Test Event ${Date.now()}`,
+      horaInicio: timeString,
+      horaFin: timeString,
+      diasSemana: [currentDay],
+      movementId: 'test-movement-id', // Necesitarás un movimiento válido
+      fechaCreacion: new Date().toISOString(),
+      creadoPor: req.user?.uid || 'test-user',
+      activo: true
+    };
+    
+    // Primero obtener un movimiento real de la base de datos
+    const movementsSnapshot = await db.collection('movimientos').limit(1).get();
+    if (movementsSnapshot.empty) {
+      return res.status(400).json({
+        success: false,
+        error: 'No hay movimientos disponibles para el test'
+      });
+    }
+    
+    const firstMovement = movementsSnapshot.docs[0];
+    testEventData.movementId = firstMovement.id;
+    
+    // Crear el evento en Firestore
+    const eventoRef = await db.collection('eventos').add(testEventData);
+    
+    // Recargar eventos en el scheduler
+    await eventScheduler.reloadEvents();
+    
+    res.json({
+      success: true,
+      message: `Evento de prueba creado - se ejecutará a las ${timeString}`,
+      data: {
+        eventId: eventoRef.id,
+        executeTime: timeString,
+        movementId: firstMovement.id,
+        movementName: firstMovement.data().nombre
+      }
+    });
+    
+  } catch (error) {
+    logger.error('❌ Error creando evento de prueba:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error creando evento de prueba',
       details: error.message
     });
   }
