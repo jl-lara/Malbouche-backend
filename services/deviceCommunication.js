@@ -87,7 +87,7 @@ async function sendPresetToESP32(ip, movement, deviceType) {
     if (deviceType === 'prototype') {
       // Prototipo usa POST con payload
       response = await axios.post(endpoint, payload, {
-        timeout: 8000,
+        timeout: 15000, // Aumentamos timeout a 15 segundos
         headers: { 'Content-Type': 'application/json' },
         validateStatus: function (status) {
           return status < 500;
@@ -96,7 +96,7 @@ async function sendPresetToESP32(ip, movement, deviceType) {
     } else {
       // ESP32 Estándar usa GET simple (como espera el Arduino)
       response = await axios.get(endpoint, {
-        timeout: 8000,
+        timeout: 15000, // Aumentamos timeout a 15 segundos
         validateStatus: function (status) {
           return status < 500;
         }
@@ -136,7 +136,7 @@ async function sendPresetToESP32(ip, movement, deviceType) {
       if (error.code === 'ECONNREFUSED') {
         logger.error(`❌ ESP32 ${ip} rechazó la conexión - ¿está encendido y conectado?`);
       } else if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
-        logger.error(`❌ ESP32 ${ip} no responde - timeout después de 8 segundos`);
+        logger.error(`❌ ESP32 ${ip} no responde - timeout después de 15 segundos`);
       } else if (error.code === 'ENOTFOUND') {
         logger.error(`❌ ESP32 ${ip} no encontrado - ¿IP correcta?`);
       } else {
@@ -219,7 +219,7 @@ async function sendCustomMovementToESP32(ip, movement, deviceType) {
     logger.info(`📡 Enviando movimiento personalizado a ${endpoint}:`, payload);
 
     const response = await axios.post(endpoint, payload, {
-      timeout: 8000, // Reducido timeout
+      timeout: 15000, // Aumentamos timeout a 15 segundos
       headers: { 'Content-Type': 'application/json' },
       validateStatus: function (status) {
         return status < 500;

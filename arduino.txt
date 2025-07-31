@@ -365,10 +365,14 @@ void setup() {
 }
 
 void loop() {
-  server.handleClient();
+  server.handleClient(); // Priorizar manejo de cliente HTTP
 
-  // Actualizar colores LED según sensores
-  actualizarRGBsegunAmbiente();
+  // Actualizar colores LED según sensores (solo cada 100ms para no saturar)
+  static unsigned long ultimaActualizacionRGB = 0;
+  if (millis() - ultimaActualizacionRGB >= 100) {
+    ultimaActualizacionRGB = millis();
+    actualizarRGBsegunAmbiente();
+  }
   
   unsigned long ahora = millis();
 if (ahora - ultimoEnvioDHT11 >= intervaloEnvioDHT11) {
@@ -422,23 +426,23 @@ if (ahora - ultimoEnvioDHT11 >= intervaloEnvioDHT11) {
   switch(modoActual) {
     case LEFT:
       girarUnPaso(motorHoras, stepIndexHoras, true);
-      delay(velocidadPaso);
+      delay(max(1, velocidadPaso)); // Asegurar mínimo delay
       girarUnPaso(motorMin, stepIndexMin, true);
-      delay(velocidadPaso);
+      delay(max(1, velocidadPaso));
       break;
 
     case RIGHT:
       girarUnPaso(motorHoras, stepIndexHoras, false);
-      delay(velocidadPaso);
+      delay(max(1, velocidadPaso));
       girarUnPaso(motorMin, stepIndexMin, false);
-      delay(velocidadPaso);
+      delay(max(1, velocidadPaso));
       break;
 
     case CRAZY:
       girarUnPaso(motorHoras, stepIndexHoras, true);
-      delay(velocidadPaso);
+      delay(max(1, velocidadPaso));
       girarUnPaso(motorMin, stepIndexMin, false);
-      delay(velocidadPaso);
+      delay(max(1, velocidadPaso));
       break;
 
     case NORMAL:
@@ -492,9 +496,12 @@ if (ahora - ultimoEnvioDHT11 >= intervaloEnvioDHT11) {
     case STOP:
       apagarMotor(motorHoras);
       apagarMotor(motorMin);
-      delay(100);
+      delay(10); // Reducir delay para mejor responsividad
       break;
   }
+
+  // Manejar cliente HTTP entre operaciones
+  server.handleClient();
 
   // --- Manejo de movimiento personalizado ---
   if (movimientoPersonalizadoActivo) {
