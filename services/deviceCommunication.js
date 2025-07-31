@@ -75,21 +75,33 @@ async function sendPresetToESP32(ip, movement, deviceType) {
         steps: presetName === 'stop' ? 0 : 2048 // Pasos completos para 28BYJ-48
       };
     } else {
-      // ESP32 Estándar
+      // ESP32 Estándar - usar GET request simple como espera el Arduino
       endpoint = `http://${ip}/${presetName}`;
-      payload = { speed };
+      // No enviamos payload - Arduino espera GET sin datos
     }
 
-    logger.info(`📡 Enviando preset "${presetName}" a ${endpoint} con payload:`, payload);
+    logger.info(`📡 Enviando preset "${presetName}" a ${endpoint}`);
 
-    const response = await axios.post(endpoint, payload, {
-      timeout: 8000, // Reducido timeout para fallar más rápido
-      headers: { 'Content-Type': 'application/json' },
-      // Manejar errores de red específicos
-      validateStatus: function (status) {
-        return status < 500; // Resolve para códigos < 500
-      }
-    });
+    let response;
+    
+    if (deviceType === 'prototype') {
+      // Prototipo usa POST con payload
+      response = await axios.post(endpoint, payload, {
+        timeout: 8000,
+        headers: { 'Content-Type': 'application/json' },
+        validateStatus: function (status) {
+          return status < 500;
+        }
+      });
+    } else {
+      // ESP32 Estándar usa GET simple (como espera el Arduino)
+      response = await axios.get(endpoint, {
+        timeout: 8000,
+        validateStatus: function (status) {
+          return status < 500;
+        }
+      });
+    }
 
     // Verificar si el ESP32 respondió con error
     if (response.status >= 400) {
@@ -183,9 +195,10 @@ async function sendCustomMovementToESP32(ip, movement, deviceType) {
         duration: (movement.duracion || 60) * 1000 // Convertir a ms
       };
     } else {
-      // ESP32 Estándar
-      endpoint = `http://${ip}/movement`;
+      // ESP32 Estándar (Arduino) - enviar datos completos del movimiento
+      endpoint = `http://${ip}/custom`;
       payload = {
+        nombre: movement.nombre || 'Movimiento personalizado',
         dirHoras: horas.direccion || 'horario',
         dirMinutos: minutos.direccion || 'horario',
         velHoras: horas.velocidad !== undefined ? horas.velocidad : 50,
@@ -245,7 +258,8 @@ async function sendCustomMovementToESP32(ip, movement, deviceType) {
  */
 export async function pingESP32(ip) {
   try {
-    const response = await axios.get(`http://${ip}/status`, {
+    // Usar la ruta raíz que existe en el Arduino
+    const response = await axios.get(`http://${ip}/`, {
       timeout: 5000
     });
 
@@ -267,13 +281,18 @@ export async function pingESP32(ip) {
  */
 export async function getESP32Info(ip) {
   try {
-    const response = await axios.get(`http://${ip}/info`, {
+    // Usar la ruta raíz para obtener info básica del Arduino
+    const response = await axios.get(`http://${ip}/`, {
       timeout: 5000
     });
 
     return {
       success: true,
-      data: response.data
+      data: {
+        status: 'connected',
+        response: response.data,
+        arduino: true
+      }
     };
   } catch (error) {
     return {

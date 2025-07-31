@@ -1,0 +1,113 @@
+/*
+ * CÓDIGO PARA AGREGAR AL ARDUINO
+ * Agregar este endpoint en el setup() después de los otros endpoints
+ */
+
+#include <ArduinoJson.h>  // Necesitarás instalar la librería ArduinoJson
+
+// Variables globales para movimiento personalizado
+bool movimientoPersonalizadoActivo = false;
+unsigned long inicioMovimientoPersonalizado = 0;
+unsigned long duracionMovimientoPersonalizado = 0;
+String dirHorasPersonalizado = "horario";
+String dirMinutosPersonalizado = "horario";
+int velHorasPersonalizado = 50;
+int velMinutosPersonalizado = 50;
+
+// Agregar en setup() después de los otros server.on():
+server.on("/custom", HTTP_POST, [](){
+  if (server.hasArg("plain")) {
+    String body = server.arg("plain");
+    
+    Serial.println("=== MOVIMIENTO PERSONALIZADO RECIBIDO ===");
+    Serial.println(body);
+    
+    // Parsear JSON
+    DynamicJsonDocument doc(1024);
+    DeserializationError error = deserializeJson(doc, body);
+    
+    if (error) {
+      Serial.print("Error parseando JSON: ");
+      Serial.println(error.c_str());
+      server.send(400, "application/json", "{\"success\":false,\"error\":\"JSON inválido\"}");
+      return;
+    }
+    
+    // Extraer datos del movimiento
+    String nombre = doc["nombre"] | "Movimiento personalizado";
+    dirHorasPersonalizado = doc["dirHoras"] | "horario";
+    dirMinutosPersonalizado = doc["dirMinutos"] | "horario";
+    velHorasPersonalizado = doc["velHoras"] | 50;
+    velMinutosPersonalizado = doc["velMinutos"] | 50;
+    int duracionSeg = doc["duracion"] | 60;
+    
+    // Validar valores
+    velHorasPersonalizado = constrain(velHorasPersonalizado, 1, 100);
+    velMinutosPersonalizado = constrain(velMinutosPersonalizado, 1, 100);
+    duracionSeg = constrain(duracionSeg, 1, 300); // máximo 5 minutos
+    
+    // Convertir velocidad a delay (velocidad alta = delay bajo)
+    int delayHoras = map(velHorasPersonalizado, 1, 100, 50, 1);
+    int delayMinutos = map(velMinutosPersonalizado, 1, 100, 50, 1);
+    
+    Serial.printf("Ejecutando: %s\n", nombre.c_str());
+    Serial.printf("Horas: %s a velocidad %d (delay %dms)\n", dirHorasPersonalizado.c_str(), velHorasPersonalizado, delayHoras);
+    Serial.printf("Minutos: %s a velocidad %d (delay %dms)\n", dirMinutosPersonalizado.c_str(), velMinutosPersonalizado, delayMinutos);
+    Serial.printf("Duración: %d segundos\n", duracionSeg);
+    
+    // Detener modo actual
+    modoActual = STOP;
+    apagarMotor(motorHoras);
+    apagarMotor(motorMin);
+    
+    // Configurar movimiento personalizado
+    duracionMovimientoPersonalizado = duracionSeg * 1000; // convertir a ms
+    inicioMovimientoPersonalizado = millis();
+    movimientoPersonalizadoActivo = true;
+    
+    // Responder inmediatamente
+    String response = "{\"success\":true,\"message\":\"Movimiento personalizado iniciado\",\"data\":{";
+    response += "\"nombre\":\"" + nombre + "\",";
+    response += "\"dirHoras\":\"" + dirHorasPersonalizado + "\",";
+    response += "\"dirMinutos\":\"" + dirMinutosPersonalizado + "\",";
+    response += "\"velHoras\":" + String(velHorasPersonalizado) + ",";
+    response += "\"velMinutos\":" + String(velMinutosPersonalizado) + ",";
+    response += "\"duracion\":" + String(duracionSeg);
+    response += "}}";
+    
+    server.send(200, "application/json", response);
+    Serial.println("Respuesta enviada, iniciando movimiento...");
+    
+  } else {
+    server.send(400, "application/json", "{\"success\":false,\"error\":\"No se recibieron datos JSON\"}");
+  }
+});
+
+// AGREGAR EN EL LOOP() - después del switch de modos actuales:
+
+// Manejar movimiento personalizado
+if (movimientoPersonalizadoActivo) {
+  unsigned long tiempoTranscurrido = millis() - inicioMovimientoPersonalizado;
+  
+  if (tiempoTranscurrido >= duracionMovimientoPersonalizado) {
+    // Terminar movimiento personalizado
+    movimientoPersonalizadoActivo = false;
+    apagarMotor(motorHoras);
+    apagarMotor(motorMin);
+    Serial.println("=== MOVIMIENTO PERSONALIZADO COMPLETADO ===");
+  } else {
+    // Continuar movimiento personalizado
+    bool sentidoHoras = (dirHorasPersonalizado == "horario");
+    bool sentidoMinutos = (dirMinutosPersonalizado == "horario");
+    
+    // Calcular delay basado en velocidad
+    int delayHoras = map(velHorasPersonalizado, 1, 100, 50, 1);
+    int delayMinutos = map(velMinutosPersonalizado, 1, 100, 50, 1);
+    
+    // Mover motores
+    girarUnPaso(motorHoras, stepIndexHoras, sentidoHoras);
+    delay(delayHoras);
+    girarUnPaso(motorMin, stepIndexMin, sentidoMinutos);
+    delay(delayMinutos);
+  }
+}
