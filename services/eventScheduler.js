@@ -226,6 +226,15 @@ class EventSchedulerService {
       // Crear expresión cron: minuto hora * * día_semana
       const cronExpression = `${minutes} ${hours} * * ${cronDays.join(',')}`;
       
+      // Log de información de tiempo
+      const now = new Date();
+      const mexicoTime = new Intl.DateTimeFormat('es-MX', {
+        timeZone: 'America/Mexico_City',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      }).format(now);
+      logger.info(`🕐 Hora actual (Mexico): ${mexicoTime} - Programando para: ${hours}:${String(minutes).padStart(2, '0')}`);
+      
       // Validar expresión cron
       if (!cron.validate(cronExpression)) {
         logger.error(`❌ Expresión cron inválida para evento ${event.id}: ${cronExpression}`);
@@ -234,11 +243,23 @@ class EventSchedulerService {
       
       // Crear y programar el cron job
       const job = cron.schedule(cronExpression, async () => {
+        logger.info(`🔥 TRIGGER EJECUTADO: Evento "${event.nombreEvento}" (${event.id}) - ${new Date().toISOString()}`);
         await this.executeEvent(event);
       }, {
         scheduled: true,
         timezone: 'America/Mexico_City' // Ajusta según tu zona horaria
       });
+
+      // Verificar que el job se creó correctamente
+      logger.info(`📅 Job creado - Estado: ${job.running ? 'ACTIVO' : 'INACTIVO'} para evento ${event.id}`);
+      
+      // Obtener próxima ejecución (si node-cron lo soporta)
+      try {
+        const nextExecution = job.nextDates ? job.nextDates(1)[0] : 'No disponible';
+        logger.info(`⏭️ Próxima ejecución: ${nextExecution}`);
+      } catch (e) {
+        logger.info(`⏭️ Próxima ejecución: No se pudo calcular`);
+      }
 
       // Guardar referencia al job
       this.cronJobs.set(event.id, job);
@@ -476,14 +497,41 @@ class EventSchedulerService {
    * Obtiene el estado actual del programador
    */
   getStatus() {
+    const activeJobs = [];
+    for (const [eventId, job] of this.cronJobs.entries()) {
+      activeJobs.push({
+        eventId,
+        running: job.running || false,
+        scheduled: job.scheduled || false
+      });
+    }
+
     return {
       isRunning: this.isRunning,
       eventsCount: this.statistics.eventsCount,
       espConfig: this.espConfig,
       statistics: this.statistics,
       scheduledEvents: Array.from(this.cronJobs.keys()),
+      activeJobs,
       uptime: this.isRunning ? Date.now() : null
     };
+  }
+
+  /**
+   * Debug: Lista todos los jobs activos con detalles
+   */
+  listActiveJobs() {
+    logger.info(`📋 LISTADO DE JOBS ACTIVOS (${this.cronJobs.size} total):`);
+    
+    if (this.cronJobs.size === 0) {
+      logger.info('  📭 No hay jobs programados');
+      return;
+    }
+
+    for (const [eventId, job] of this.cronJobs.entries()) {
+      const status = job.running ? '🟢 ACTIVO' : '🔴 INACTIVO';
+      logger.info(`  ${status} - Evento ID: ${eventId}`);
+    }
   }
 
   /**

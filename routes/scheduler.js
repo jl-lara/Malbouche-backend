@@ -127,6 +127,37 @@ router.post('/reload', verifyToken, async (req, res) => {
 });
 
 /**
+ * GET /api/scheduler/debug/jobs
+ * Lista todos los jobs activos para debug
+ */
+router.get('/debug/jobs', verifyToken, async (req, res) => {
+  try {
+    // Llamar al método de debug
+    eventScheduler.listActiveJobs();
+    
+    const status = eventScheduler.getStatus();
+    
+    res.json({
+      success: true,
+      message: 'Debug info logged to console',
+      data: {
+        totalJobs: status.activeJobs?.length || 0,
+        isRunning: status.isRunning,
+        scheduledEvents: status.scheduledEvents,
+        activeJobs: status.activeJobs
+      }
+    });
+  } catch (error) {
+    logger.error('❌ Error en debug de jobs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error en debug de jobs',
+      details: error.message
+    });
+  }
+});
+
+/**
  * POST /api/scheduler/execute/:eventId
  * Ejecuta un evento específico inmediatamente (para testing)
  */
