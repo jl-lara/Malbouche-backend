@@ -61,6 +61,36 @@ export const getAllMovements = async (req, res) => {
   }
 };
 
+export const getMovementById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const movementDoc = await db.collection('movimientos').doc(id).get();
+    
+    if (!movementDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Movement not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        id: movementDoc.id,
+        ...movementDoc.data()
+      }
+    });
+  } catch (err) {
+    logger.error('❌ Error fetching movement:', err.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching movement',
+      details: err.message
+    });
+  }
+};
+
 export const createMovement = async (req, res) => {
   try {
     const newMovement = req.body;

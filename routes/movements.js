@@ -1,6 +1,7 @@
 import express from 'express';
 import { 
   getAllMovements, 
+  getMovementById,
   createMovement, 
   updateMovement, 
   deleteMovement 
@@ -12,6 +13,9 @@ const router = express.Router();
 
 // GET /api/movements - Get all movements
 router.get('/', verifyToken, getAllMovements);
+
+// GET /api/movements/:id - Get movement by ID
+router.get('/:id', verifyToken, validateId, getMovementById);
 
 // POST /api/movements - Create new movement
 router.post('/', verifyToken, validateMovimiento, createMovement);

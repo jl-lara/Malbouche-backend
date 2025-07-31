@@ -104,6 +104,10 @@ export const validateMovimiento = [
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('movimiento.horas.velocidad debe ser un número entre 1 y 100'),
+  body('movimiento.horas.angulo')
+    .optional()
+    .isFloat({ min: 0.1, max: 360 })
+    .withMessage('movimiento.horas.angulo debe ser un número entre 0.1 y 360 grados'),
   body('movimiento.minutos')
     .optional()
     .isObject()
@@ -116,6 +120,10 @@ export const validateMovimiento = [
     .optional()
     .isInt({ min: 1, max: 100 })
     .withMessage('movimiento.minutos.velocidad debe ser un número entre 1 y 100'),
+  body('movimiento.minutos.angulo')
+    .optional()
+    .isFloat({ min: 0.1, max: 360 })
+    .withMessage('movimiento.minutos.angulo debe ser un número entre 0.1 y 360 grados'),
   handleValidationErrors
 ];
 

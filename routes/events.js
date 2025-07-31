@@ -1,6 +1,7 @@
 import express from 'express';
 import { 
   getAllEvents, 
+  getEventById,
   createEvent, 
   updateEvent, 
   deleteEvent 
@@ -13,6 +14,9 @@ const router = express.Router();
 
 // GET /api/events - Get all events
 router.get('/', verifyToken, getAllEvents);
+
+// GET /api/events/:id - Get event by ID
+router.get('/:id', verifyToken, validateId, getEventById);
 
 // POST /api/events - Create new event
 router.post('/', verifyToken, validateEvento, createEvent);

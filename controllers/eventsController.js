@@ -30,6 +30,36 @@ export const getAllEvents = async (req, res) => {
   }
 };
 
+export const getEventById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const eventDoc = await db.collection('eventos').doc(id).get();
+    
+    if (!eventDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Event not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        id: eventDoc.id,
+        ...eventDoc.data()
+      }
+    });
+  } catch (err) {
+    logger.error('❌ Error fetching event:', err.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error fetching event',
+      details: err.message
+    });
+  }
+};
+
 export const createEvent = async (req, res) => {
   try {
     const { nombreEvento, horaInicio, horaFin, diasSemana, movementId, enabled } = req.body;
