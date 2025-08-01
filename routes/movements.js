@@ -4,7 +4,8 @@ import {
   getMovementById,
   createMovement, 
   updateMovement, 
-  deleteMovement 
+  deleteMovement,
+  patchMovement
 } from '../controllers/movementsController.js';
 import { verifyToken } from '../middleware/auth.js';
 import { validateMovimiento, validateMovimientoUpdate, validateId } from '../middleware/validation.js';
@@ -20,8 +21,11 @@ router.get('/:id', verifyToken, validateId, getMovementById);
 // POST /api/movements - Create new movement
 router.post('/', verifyToken, validateMovimiento, createMovement);
 
-// PUT /api/movements/:id - Update movement
+// PUT /api/movements/:id - Update movement (full update)
 router.put('/:id', verifyToken, validateId, validateMovimientoUpdate, updateMovement);
+
+// PATCH /api/movements/:id - Update movement (partial update)
+router.patch('/:id', verifyToken, validateId, validateMovimientoUpdate, patchMovement);
 
 // DELETE /api/movements/:id - Delete movement
 router.delete('/:id', verifyToken, validateId, deleteMovement);
