@@ -7,6 +7,7 @@ Backend para la aplicación Malbouche usando Express.js y Firebase Firestore.
 - **Autenticación JWT**: Registro y login seguro con bcrypt
 - **Base de datos Firestore**: Almacenamiento escalable en la nube
 - **Validación robusta**: Validación de entrada con express-validator
+- **Validación de conflictos**: Prevención automática de eventos con horarios superpuestos
 - **Seguridad**: Helmet, CORS, rate limiting
 - **Logging**: Sistema de logs con Winston
 - **Documentación**: Swagger/OpenAPI 3.0
@@ -273,6 +274,51 @@ Respuesta:
 ### Error: "Token inválido"
 - Verifica que el token JWT no haya expirado
 - Asegúrate de incluir `Bearer ` antes del token
+
+## 🔍 Validación de Eventos Avanzada
+
+### Prevención de Conflictos de Horarios
+
+El sistema incluye validación automática para prevenir eventos con horarios superpuestos:
+
+#### ✅ **Características:**
+- **Detección automática**: Verifica conflictos al crear/actualizar eventos
+- **Solapamiento inteligente**: Analiza horarios y días de la semana
+- **Eventos activos**: Solo considera eventos con `activo: true`
+- **Mensajes descriptivos**: Errores detallados con información del conflicto
+
+#### 📝 **Ejemplos de Uso:**
+
+**Crear evento sin conflictos:**
+```bash
+POST /api/events
+{
+  "nombreEvento": "Reunión Matutina",
+  "horaInicio": "09:00",
+  "horaFin": "10:00",
+  "diasSemana": ["M", "T", "W"],
+  "movementId": "movement123"
+}
+```
+
+**Error por conflicto detectado:**
+```json
+{
+  "success": false,
+  "error": "Validation errors",
+  "details": [{
+    "msg": "Conflicto de horarios detectado con el evento \"Reunión Vespertina\" (14:00-15:00, días: M, T)"
+  }]
+}
+```
+
+#### 📋 **Validaciones Incluidas:**
+- ✅ Eventos consecutivos permitidos (ej: 10:00-11:00 y 11:00-12:00)
+- ❌ Solapamientos bloqueados (ej: 09:00-10:00 vs 09:30-10:30)
+- ✅ Mismos horarios en días diferentes permitidos
+- ❌ Eventos contenidos bloqueados (ej: 09:00-11:00 vs 09:30-10:00)
+
+Para más detalles, consulta: [`EVENT_CONFLICT_VALIDATION.md`](EVENT_CONFLICT_VALIDATION.md)
 
 ## 🤝 Contribución
 

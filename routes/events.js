@@ -7,7 +7,7 @@ import {
   deleteEvent 
 } from '../controllers/eventsController.js';
 import { verifyToken } from '../middleware/auth.js';
-import { validateEvento } from '../middleware/validation.js';
+import { validateEventoWithConflicts, validateEventoUpdateWithConflicts } from '../middleware/validation.js';
 import { validateId } from '../middleware/validation.js';
 
 const router = express.Router();
@@ -19,10 +19,10 @@ router.get('/', verifyToken, getAllEvents);
 router.get('/:id', verifyToken, validateId, getEventById);
 
 // POST /api/events - Create new event
-router.post('/', verifyToken, validateEvento, createEvent);
+router.post('/', verifyToken, validateEventoWithConflicts, createEvent);
 
 // PUT /api/events/:id - Update event
-router.put('/:id', verifyToken, validateId, validateEvento, updateEvent);
+router.put('/:id', verifyToken, validateId, validateEventoUpdateWithConflicts, updateEvent);
 
 // DELETE /api/events/:id - Delete event
 router.delete('/:id', verifyToken, validateId, deleteEvent);

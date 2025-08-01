@@ -1,4 +1,4 @@
-# Guía de Utilización del Backend API Malbouche para React Native
+# 📱 Guía Completa del Backend API Malbouche para React Native
 
 ## Índice
 1. [Introducción](#introducción)
@@ -7,16 +7,18 @@
 4. [Gestión de Usuarios](#gestión-de-usuarios)
 5. [Gestión de Movimientos](#gestión-de-movimientos)
 6. [Gestión de Eventos](#gestión-de-eventos)
-7. [Control del Programador (Scheduler)](#control-del-programador-scheduler)
-8. [Manejo de Errores](#manejo-de-errores)
-9. [Mejores Prácticas](#mejores-prácticas)
-10. [Ejemplos de Implementación](#ejemplos-de-implementación)
+7. [Control del Movimiento Actual](#control-del-movimiento-actual)
+8. [Control del Programador (Scheduler)](#control-del-programador-scheduler)
+9. [Endpoints de Información y Utilidades](#endpoints-de-información-y-utilidades)
+10. [Manejo de Errores](#manejo-de-errores)
+11. [Mejores Prácticas](#mejores-prácticas)
+12. [Ejemplos de Implementación](#ejemplos-de-implementación)
 
 ---
 
 ## Introducción
 
-Esta guía describe cómo integrar y utilizar correctamente la API backend de Malbouche en una aplicación React Native. El backend está diseñado para controlar un reloj analógico ESP32 con almacenamiento en Firestore, proporcionando funcionalidades de autenticación, gestión de usuarios, movimientos programados y eventos automatizados.
+Esta es la guía definitiva para integrar y utilizar el backend API de Malbouche en aplicaciones React Native. El backend controla un reloj analógico ESP32 con almacenamiento en Firestore, proporcionando funcionalidades completas de autenticación, gestión de usuarios, movimientos programados, eventos automatizados y validación avanzada de conflictos de horarios.
 
 ### URL Base de la API
 ```
@@ -24,13 +26,15 @@ https://malbouche-backend.onrender.com/api
 ```
 
 ### Características Principales
-- Autenticación JWT
-- Control de reloj ESP32
-- Programación de eventos
-- Gestión de movimientos
-- Rate limiting (1000 requests/15min)
-- CORS habilitado
-- Logs de actividad
+- **Autenticación JWT** con roles y permisos
+- **Control de reloj ESP32** con comunicación en tiempo real
+- **Programación de eventos** con validación de conflictos automática
+- **Gestión completa de movimientos** con control de ángulo preciso
+- **Validación de conflictos de horarios** para prevenir eventos superpuestos
+- **Rate limiting** (1000 requests/15min) y seguridad robusta
+- **CORS habilitado** para desarrollo y producción
+- **Logs de actividad** y monitoreo del sistema
+- **Scheduler inteligente** para ejecución automática de eventos
 
 ---
 
@@ -234,6 +238,48 @@ export const updateUser = async (userId, userData) => {
 };
 ```
 
+### Crear Usuario (Solo Admin)
+
+```javascript
+export const createUser = async (userData) => {
+  try {
+    const response = await apiClient.post('/users', {
+      nombre: userData.nombre,
+      apellidos: userData.apellidos,
+      correo: userData.correo.toLowerCase().trim(),
+      puesto: userData.puesto || '',
+      rol: userData.rol || 'usuario'
+    });
+    return {
+      success: true,
+      user: response.data.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Error al crear usuario',
+      details: error.response?.data?.details
+    };
+  }
+};
+```
+
+### Eliminar Usuario (Solo Admin)
+
+```javascript
+export const deleteUser = async (userId) => {
+  try {
+    await apiClient.delete(`/users/${userId}`);
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Error al eliminar usuario'
+    };
+  }
+};
+```
+
 ---
 
 ## Gestión de Movimientos
@@ -274,6 +320,25 @@ export const getAllMovements = async () => {
     return {
       success: false,
       error: error.response?.data?.error || 'Error al obtener movimientos'
+    };
+  }
+};
+```
+
+### Obtener Movimiento por ID
+
+```javascript
+export const getMovementById = async (movementId) => {
+  try {
+    const response = await apiClient.get(`/movements/${movementId}`);
+    return {
+      success: true,
+      movement: response.data.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Movimiento no encontrado'
     };
   }
 };
@@ -370,6 +435,25 @@ export const getAllEvents = async () => {
 };
 ```
 
+### Obtener Evento por ID
+
+```javascript
+export const getEventById = async (eventId) => {
+  try {
+    const response = await apiClient.get(`/events/${eventId}`);
+    return {
+      success: true,
+      event: response.data.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Evento no encontrado'
+    };
+  }
+};
+```
+
 ### Crear Nuevo Evento
 
 ```javascript
@@ -390,6 +474,99 @@ export const createEvent = async (eventData) => {
 };
 ```
 
+**⚠️ Validación de Conflictos de Horarios:**
+
+El sistema incluye validación automática que previene eventos con horarios superpuestos:
+
+**Criterios de Conflicto:**
+- **Solapamiento de días**: Eventos que comparten al menos un día de la semana
+- **Solapamiento de horarios**: Rangos de tiempo que se superponen
+- **Solo eventos activos**: Solo considera eventos con `activo: true`
+
+**Ejemplos de Conflictos:**
+```javascript
+// ❌ Conflicto: Solapamiento total
+Evento existente: 09:00-10:00, días ["M", "T"]
+Nuevo evento:     09:00-10:00, días ["M", "W"] → Error
+
+// ❌ Conflicto: Solapamiento parcial  
+Evento existente: 09:00-11:00, días ["M"]
+Nuevo evento:     10:00-12:00, días ["M"] → Error
+
+// ✅ Permitido: Eventos consecutivos
+Evento existente: 09:00-10:00, días ["M"]
+Nuevo evento:     10:00-11:00, días ["M"] → OK
+
+// ✅ Permitido: Días diferentes
+Evento existente: 09:00-10:00, días ["M"]
+Nuevo evento:     09:00-10:00, días ["T"] → OK
+```
+
+**Respuesta de Error (Conflicto):**
+```json
+{
+  "success": false,
+  "error": "Validation errors",
+  "details": [
+    {
+      "msg": "Conflicto de horarios detectado con el evento \"Reunión Matutina\" (09:00-10:00, días: M, T, W)",
+      "param": "horaInicio",
+      "location": "body"
+    }
+  ]
+}
+```
+
+**Manejo en React Native:**
+```javascript
+// Función para manejar errores de conflicto específicamente
+export const handleEventConflictError = (error) => {
+  if (error.details && Array.isArray(error.details)) {
+    const conflictError = error.details.find(detail => 
+      detail.msg.includes('Conflicto de horarios detectado')
+    );
+    
+    if (conflictError) {
+      return {
+        isConflict: true,
+        message: conflictError.msg,
+        suggestion: 'Intenta cambiar el horario o los días del evento'
+      };
+    }
+  }
+  
+  return {
+    isConflict: false,
+    message: error.error || 'Error desconocido'
+  };
+};
+
+// Ejemplo de uso en componente
+const createEventWithConflictHandling = async (eventData) => {
+  const result = await createEvent(eventData);
+  
+  if (!result.success) {
+    const conflictInfo = handleEventConflictError(result);
+    
+    if (conflictInfo.isConflict) {
+      Alert.alert(
+        'Conflicto de Horarios',
+        conflictInfo.message,
+        [
+          { text: 'OK', style: 'default' },
+          { 
+            text: 'Ver Eventos Existentes', 
+            onPress: () => navigation.navigate('EventsList')
+          }
+        ]
+      );
+    } else {
+      Alert.alert('Error', conflictInfo.message);
+    }
+  }
+};
+```
+
 ### Actualizar Evento
 
 ```javascript
@@ -403,9 +580,31 @@ export const updateEvent = async (eventId, eventData) => {
   } catch (error) {
     return {
       success: false,
-      error: error.response?.data?.error || 'Error al actualizar evento'
+      error: error.response?.data?.error || 'Error al actualizar evento',
+      details: error.response?.data?.details
     };
   }
+};
+```
+
+**⚠️ Validación de Conflictos en Actualizaciones:**
+- Solo verifica conflictos si se actualizan campos relacionados con horarios (`horaInicio`, `horaFin`, `diasSemana`)
+- Excluye automáticamente el evento actual de la verificación de conflictos
+- Si solo se actualiza el nombre u otros campos no relacionados con horarios, no se ejecuta la validación de conflictos
+
+**Ejemplo de actualización inteligente:**
+```javascript
+// Actualizar solo el nombre - NO verifica conflictos
+const updateEventName = async (eventId, newName) => {
+  return await updateEvent(eventId, { nombreEvento: newName });
+};
+
+// Actualizar horario - SÍ verifica conflictos
+const updateEventTime = async (eventId, newStartTime, newEndTime) => {
+  return await updateEvent(eventId, { 
+    horaInicio: newStartTime, 
+    horaFin: newEndTime 
+  });
 };
 ```
 
@@ -420,6 +619,71 @@ export const deleteEvent = async (eventId) => {
     return {
       success: false,
       error: error.response?.data?.error || 'Error al eliminar evento'
+    };
+  }
+};
+```
+
+---
+
+## Control del Movimiento Actual
+
+### Establecer Movimiento Actual por Preset
+
+```javascript
+export const setCurrentMovementByPreset = async (presetName, velocidad) => {
+  try {
+    const response = await apiClient.post(`/movimiento-actual/${presetName}`, {
+      velocidad: velocidad
+    });
+    return {
+      success: true,
+      movement: response.data.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Error al establecer movimiento actual'
+    };
+  }
+};
+```
+
+### Actualizar Velocidad del Movimiento Actual
+
+```javascript
+export const updateCurrentMovementSpeed = async (velocidad) => {
+  try {
+    const response = await apiClient.patch('/movimiento-actual/velocidad', {
+      velocidad: velocidad
+    });
+    return {
+      success: true,
+      message: response.data.message
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Error al actualizar velocidad'
+    };
+  }
+};
+```
+
+### Obtener Movimiento Actual
+
+```javascript
+export const getCurrentMovement = async () => {
+  try {
+    const response = await apiClient.get('/movimiento-actual');
+    return {
+      success: true,
+      movement: response.data.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Error al obtener movimiento actual'
     };
   }
 };
@@ -560,9 +824,44 @@ export const executeEventNow = async (eventId) => {
 | 401 | No autorizado | Redirigir a login |
 | 403 | Prohibido | Mostrar mensaje de permisos |
 | 404 | No encontrado | Mostrar error de recurso |
-| 409 | Conflicto | Manejar duplicados |
+| 409 | Conflicto | Manejar duplicados o conflictos de horario |
 | 429 | Demasiadas peticiones | Implementar retry |
 | 500 | Error del servidor | Mostrar error genérico |
+
+### Validaciones por Endpoint
+
+#### Eventos:
+- `nombreEvento`: 2-100 caracteres, requerido
+- `horaInicio`: Formato HH:MM, requerido  
+- `horaFin`: Formato HH:MM, requerido (debe ser posterior a horaInicio)
+- `diasSemana`: Array con al menos un día, valores válidos: `Su`, `M`, `T`, `W`, `Th`, `F`, `Sa`
+- `movementId`: ID del movimiento, requerido
+- `enabled`: Booleano, opcional (default: true)
+
+#### Movimientos:
+- `nombre`: 2-100 caracteres, requerido
+- `duracion`: Número entero positivo, requerido
+- `movimiento.direccionGeneral`: "derecha" o "izquierda"
+- `movimiento.horas.direccion`: "derecha" o "izquierda"
+- `movimiento.horas.velocidad`: Número entre 1-100
+- `movimiento.horas.angulo`: Número decimal entre 0.1-360 grados
+- `movimiento.minutos.direccion`: "derecha" o "izquierda"
+- `movimiento.minutos.velocidad`: Número entre 1-100
+- `movimiento.minutos.angulo`: Número decimal entre 0.1-360 grados
+
+#### Usuarios:
+- `nombre`: 2-50 caracteres, requerido
+- `apellidos`: 2-50 caracteres, requerido
+- `correo`: Email válido, requerido
+- `password`: Mínimo 6 caracteres, requerido (solo registro/login)
+- `puesto`: Máximo 100 caracteres, opcional
+- `rol`: "admin", "usuario" o "vip", requerido (solo creación por admin)
+
+### Permisos por Rol
+
+- **admin**: Acceso completo a todos los recursos
+- **usuario**: Acceso estándar (limitado en gestión de usuarios)
+- **vip**: Acceso especial (según necesidades del proyecto)
 
 ### Manejo Global de Errores
 
@@ -628,6 +927,48 @@ export const handleApiError = (error) => {
     return {
       title: 'Error',
       message: 'Ha ocurrido un error inesperado'
+    };
+  }
+};
+```
+
+---
+
+## Endpoints de Información y Utilidades
+
+### Health Check
+
+```javascript
+export const checkServerHealth = async () => {
+  try {
+    const response = await apiClient.get('/health');
+    return {
+      success: true,
+      status: response.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: 'Servidor no disponible'
+    };
+  }
+};
+```
+
+### Obtener Logs del Sistema
+
+```javascript
+export const getSystemLogs = async (limit = 100) => {
+  try {
+    const response = await apiClient.get(`/scheduler/logs?limit=${limit}`);
+    return {
+      success: true,
+      logs: response.data.data
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Error al obtener logs'
     };
   }
 };
@@ -1063,14 +1404,36 @@ export const SchedulerControlScreen = () => {
 
 3. **Validaciones**: Todos los endpoints tienen validaciones estrictas. Revisa las respuestas de error para mostrar mensajes específicos.
 
-4. **ESP32**: El sistema requiere configuración del IP del ESP32 para funcionar correctamente. Verifica conectividad regularmente.
+4. **Conflictos de Eventos**: El sistema previene automáticamente eventos con horarios superpuestos. Maneja los errores 400 con mensaje de conflicto apropiadamente.
 
-5. **Firestore**: Los datos se almacenan en tiempo real. Considera implementar listeners para actualizaciones en vivo.
+5. **ESP32**: El sistema requiere configuración del IP del ESP32 para funcionar correctamente. Verifica conectividad regularmente.
 
-6. **Logs**: Todas las acciones se registran. El endpoint `/scheduler/logs` proporciona información de debugging.
+6. **Firestore**: Los datos se almacenan en tiempo real. Considera implementar listeners para actualizaciones en vivo.
 
-7. **CORS**: El backend está configurado para aceptar requests desde cualquier origen. En producción, configura dominios específicos.
+7. **Logs**: Todas las acciones se registran. El endpoint `/scheduler/logs` proporciona información de debugging.
 
-8. **Health Check**: Usa `/health` para verificar el estado del servidor antes de realizar operaciones críticas.
+8. **CORS**: El backend está configurado para aceptar requests desde cualquier origen. En producción, configura dominios específicos.
+
+9. **Health Check**: Usa `/health` para verificar el estado del servidor antes de realizar operaciones críticas.
+
+10. **Permisos**: Respeta los roles de usuario. Solo admins pueden crear/eliminar usuarios y algunos endpoints están restringidos.
+
+## Funcionalidades Recientes
+
+### ✅ Validación de Conflictos de Horarios
+- **Detección automática**: Previene eventos con horarios superpuestos
+- **Validación inteligente**: Solo verifica conflictos cuando es necesario
+- **Mensajes descriptivos**: Errores detallados con información del conflicto
+- **Optimización**: Excluye el evento actual en actualizaciones
+
+### ✅ Control Avanzado de Movimientos
+- **Campo ángulo**: Control preciso del recorrido de manecillas (0.1-360°)
+- **Movimientos pendulares**: Crear oscilaciones y patrones personalizados
+- **Velocidad dinámica**: Actualizar velocidad sin cambiar otros parámetros
+
+### ✅ Gestión Completa
+- **CRUD completo**: Crear, leer, actualizar y eliminar para todos los recursos
+- **Autenticación robusta**: JWT con roles y permisos
+- **Scheduler integrado**: Control automático del ESP32 basado en eventos
 
 Esta guía proporciona una base sólida para integrar la API de Malbouche en tu aplicación React Native. Adapta los ejemplos según las necesidades específicas de tu aplicación y siempre maneja los errores de manera apropiada para una mejor experiencia de usuario.
