@@ -88,6 +88,8 @@ app.get('/', (req, res) => {
       users: '/api/users',
       movements: '/api/movements',
       events: '/api/events',
+      scheduler: '/api/scheduler',
+      directMovement: '/api/direct-movement',
       health: '/health',
       docs: '/docs'
     }
@@ -100,10 +102,12 @@ app.use('/api/users', userRoutes);
 import movimientosRoutes from './routes/movements.js';
 import movimientoActualRoutes from './routes/movimientoActual.js';
 import schedulerRoutes from './routes/scheduler.js';
+import directMovementRoutes from './routes/directMovement.js';
 
 app.use('/api/movements', movimientosRoutes);
 app.use('/api/movimiento-actual', movimientoActualRoutes);
 app.use('/api/scheduler', schedulerRoutes);
+app.use('/api/direct-movement', directMovementRoutes);
 import eventsRoutes from './routes/events.js';
 
 app.use('/api/events', eventsRoutes);
@@ -156,6 +160,11 @@ app.get('/docs', (req, res) => {
         'GET /api/scheduler/esp32/info': 'Get ESP32 device info',
         'GET /api/scheduler/logs': 'Get execution logs',
         'POST /api/scheduler/execute/:id': 'Execute event immediately'
+      },
+      'Direct Movement Control': {
+        'POST /api/direct-movement/execute': 'Execute movement directly on ESP32',
+        'POST /api/direct-movement/stop': 'Stop current movement',
+        'GET /api/direct-movement/status': 'Get ESP32 connection status'
       }
     }
   });
