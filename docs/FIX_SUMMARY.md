@@ -1,8 +1,85 @@
-# PROBLEMA CRÍTICO RESUELTO: PUT Endpoint No Persistía Datos
+# PROBLEMAS CRÍTICOS RESUELTOS
 
-## 🔧 Problemas Identificados y Corregidos
+## PROBLEMA 1: Comunicación con ESP32 no funcionaba
 
-### 1. **Problema Principal: Función `updateMovement` era un placeholder**
+### 🔧 Problemas Identificados y Corregidos
+
+Se identificaron varios problemas que causaban la falta de comunicación entre el backend y el ESP32:
+
+1. **Código eliminado**: Se removió la funcionalidad de consulta periódica al backend en el código del ESP32.
+2. **Inconsistencia de rutas**: El ESP32 estaba consultando `/api/scheduler/esp32/commands` pero la ruta estaba registrada como `/api/esp32/commands`.
+3. **Problemas con HTTPS**: El ESP32 intentaba hacer conexiones HTTPS sin certificados válidos.
+4. **Sistema de polling incompleto**: La implementación del polling estaba correcta en el backend pero faltaba la parte del ESP32.
+
+### 🛠️ Solución Implementada
+
+#### 1. En el ESP32:
+
+- Se restauró la funcionalidad de consulta periódica al backend (`consultarComandosPendientes()`)
+- Se optimizó el código para no entorpecer el movimiento
+- Se agregó la confirmación de comandos ejecutados
+- Se corrigieron las URLs para que coincidan con el backend
+
+```cpp
+// --- Consultar comandos pendientes del backend ---
+if (ahora - ultimaConsultaComandos >= intervaloConsultaComandos) {
+  ultimaConsultaComandos = ahora;
+  consultarComandosPendientes();
+}
+
+// --- Ejecutar comando pendiente del backend ---
+if (comandoPendiente) {
+  ejecutarComandoBackend(comandoActual);
+}
+```
+
+#### 2. En el Backend:
+
+- Se corrigieron las rutas para mantener consistencia
+- Se añadió un endpoint para confirmación de comandos ejecutados
+- Se mejoró el logging para mejor diagnóstico
+
+```javascript
+/**
+ * GET /api/scheduler/esp32/commands
+ * ESP32 consulta si hay comandos pendientes (sin autenticación)
+ */
+router.get('/esp32/commands', async (req, res) => {
+  // ...
+});
+
+/**
+ * POST /api/scheduler/esp32/commands/ack
+ * ESP32 confirma recepción y ejecución del comando
+ */
+router.post('/esp32/commands/ack', async (req, res) => {
+  // ...
+});
+```
+
+### 📋 Rutas del API
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/scheduler/esp32/commands` | ESP32 consulta comandos pendientes |
+| POST | `/api/scheduler/esp32/commands/ack` | ESP32 confirma ejecución de comandos |
+| POST | `/api/scheduler/esp32/queue-command` | Backend encola comandos para ESP32 |
+| GET | `/api/scheduler/esp32/status` | Estado del sistema de polling (diagnóstico) |
+
+### 🔄 Flujo de Comunicación Corregido
+
+1. **App → Backend**: La app envía comandos al backend a través de API
+2. **Backend → Cola**: El backend encola el comando en `pendingCommand`
+3. **ESP32 → Backend**: ESP32 consulta periódicamente si hay comandos
+4. **Backend → ESP32**: Backend envía comando pendiente
+5. **ESP32**: Ejecuta el comando y confirma ejecución
+6. **ESP32 → Backend**: Envía confirmación de ejecución
+
+## PROBLEMA 2: PUT Endpoint No Persistía Datos
+
+### 🔧 Problemas Identificados y Corregidos
+
+#### 1. **Problema Principal: Función `updateMovement` era un placeholder**
 ```javascript
 // ❌ ANTES (MAL) - No guardaba en la base de datos
 export const updateMovement = async (req, res) => {

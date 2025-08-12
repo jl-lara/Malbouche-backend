@@ -668,7 +668,7 @@ router.post('/toggle', verifyToken, async (req, res) => {
 let pendingCommand = null;
 
 /**
- * GET /api/esp32/commands
+ * GET /api/scheduler/esp32/commands
  * ESP32 consulta si hay comandos pendientes (sin autenticación)
  */
 router.get('/esp32/commands', async (req, res) => {
@@ -698,7 +698,7 @@ router.get('/esp32/commands', async (req, res) => {
 });
 
 /**
- * POST /api/esp32/queue-command
+ * POST /api/scheduler/esp32/queue-command
  * Encola un comando para que el ESP32 lo recoja (para uso interno del EventScheduler)
  */
 router.post('/esp32/queue-command', async (req, res) => {
@@ -732,7 +732,7 @@ router.post('/esp32/queue-command', async (req, res) => {
 });
 
 /**
- * GET /api/esp32/status
+ * GET /api/scheduler/esp32/status
  * Estado del sistema de polling (para diagnóstico)
  */
 router.get('/esp32/status', verifyToken, async (req, res) => {
@@ -750,6 +750,28 @@ router.get('/esp32/status', verifyToken, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Error obteniendo estado',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/scheduler/esp32/commands/ack
+ * ESP32 confirma recepción y ejecución del comando
+ */
+router.post('/esp32/commands/ack', async (req, res) => {
+  try {
+    logger.info(`📡 ESP32 confirmó ejecución de comando`);
+    
+    res.json({
+      success: true,
+      message: 'Confirmación recibida'
+    });
+  } catch (error) {
+    logger.error('❌ Error procesando confirmación de comando:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error procesando confirmación',
       details: error.message
     });
   }
