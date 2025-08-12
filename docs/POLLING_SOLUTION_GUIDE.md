@@ -51,9 +51,10 @@ if (comandoPendiente) {
 ### 2. Backend (`routes/scheduler.js`)
 
 #### Endpoints nuevos:
-- `GET /api/esp32/commands` - ESP32 consulta comandos pendientes
-- `POST /api/esp32/queue-command` - Encola comandos para ESP32
-- `GET /api/esp32/status` - Estado del sistema de polling
+- `GET /api/scheduler/esp32/commands` - ESP32 consulta comandos pendientes
+- `POST /api/scheduler/esp32/queue-command` - Encola comandos para ESP32
+- `GET /api/scheduler/esp32/status` - Estado del sistema de polling
+- `POST /api/scheduler/esp32/commands/ack` - ESP32 confirma ejecución del comando
 
 ### 3. Device Communication (`services/deviceCommunication.js`)
 
@@ -66,10 +67,11 @@ if (comandoPendiente) {
 
 1. **EventScheduler** ejecuta evento
 2. **sendCommandToESP32** detecta que es un preset
-3. **sendPresetViaPolling** encola el comando
-4. **ESP32** consulta comandos cada 5 segundos
+3. **sendPresetViaPolling** encola el comando en `/api/scheduler/esp32/queue-command`
+4. **ESP32** consulta comandos cada 5 segundos con GET a `/api/scheduler/esp32/commands`
 5. **Backend** responde con comando encolado
 6. **ESP32** ejecuta el comando
+7. **ESP32** confirma ejecución con POST a `/api/scheduler/esp32/commands/ack`
 
 ### Timeline típico:
 ```
@@ -104,7 +106,7 @@ if (comandoPendiente) {
 ### Test desde terminal:
 ```bash
 # Verificar endpoint de comandos
-curl https://malbouche-backend.onrender.com/api/esp32/commands
+curl https://malbouche-backend.onrender.com/api/scheduler/esp32/commands
 
 # Encolar comando manualmente
 curl -X POST https://malbouche-backend.onrender.com/api/scheduler/esp32/queue-command \

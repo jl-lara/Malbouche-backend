@@ -75,7 +75,77 @@ router.post('/esp32/commands/ack', async (req, res) => {
 5. **ESP32**: Ejecuta el comando y confirma ejecución
 6. **ESP32 → Backend**: Envía confirmación de ejecución
 
-## PROBLEMA 2: PUT Endpoint No Persistía Datos
+## PROBLEMA 2: Movimiento entrecortado al consultar el backend
+
+### 🔧 Problema Identificado y Corregido
+
+El movimiento del reloj se detenía brevemente cada vez que el ESP32 consultaba al backend, causando un movimiento visualmente interrumpido y poco fluido. Esto se debía a que las llamadas HTTP bloqueantes (`HTTPClient.GET()`) pausaban la ejecución del resto del código.
+
+#### Código problemático (bloqueante):
+```cpp
+// Consultar comandos cada 5 segundos (BLOQUEANTE)
+if (ahora - ultimaConsultaComandos >= intervaloConsultaComandos) {
+  ultimaConsultaComandos = ahora;
+  consultarComandosPendientes(); // Esta función BLOQUEA la ejecución
+}
+```
+
+### 🛠️ Solución: Comunicación HTTP No Bloqueante
+
+Se implementó un sistema de comunicación HTTP no bloqueante utilizando una máquina de estados que permite consultar al backend sin interrumpir el movimiento de las manecillas.
+
+#### 1. Máquina de estados HTTP:
+```cpp
+// --- Variables para HTTP no bloqueante ---
+enum EstadoHTTP { 
+  HTTP_IDLE,              // Sin operación HTTP en curso
+  HTTP_CONSULTANDO,       // Consultando comandos pendientes
+  HTTP_ENVIANDO_ACK       // Enviando confirmación de recepción
+};
+EstadoHTTP estadoHTTP = HTTP_IDLE;
+```
+
+#### 2. Nuevo enfoque no bloqueante:
+```cpp
+// Manejar solicitudes HTTP en curso
+manejarConsultaHTTP();  // Procesa solicitudes HTTP sin bloquear
+
+// Iniciar consulta si no hay ninguna en curso y es tiempo
+if (estadoHTTP == HTTP_IDLE && ahora - ultimaConsultaComandos >= intervaloConsultaComandos) {
+  ultimaConsultaComandos = ahora;
+  iniciarConsultaComandos();  // Solo INICIA la solicitud, no espera respuesta
+}
+```
+
+#### 3. Control de timeout para evitar bloqueos:
+```cpp
+unsigned long inicioHTTP = 0;
+const unsigned long timeoutHTTP = 3000; // 3 segundos de timeout
+
+// En manejarConsultaHTTP():
+if (ahora - inicioHTTP > timeoutHTTP) {
+  Serial.println("⚠️ Timeout en operación HTTP");
+  httpClient.end();
+  estadoHTTP = HTTP_IDLE;
+}
+```
+
+### 📈 Ventajas de la implementación
+
+1. **Movimiento continuo**: Las manecillas se mueven sin interrupciones visibles
+2. **Mejor experiencia visual**: Movimiento fluido y natural del reloj
+3. **Mayor eficiencia**: Menos bloqueos del procesador del ESP32
+4. **Mejor manejo de errores**: Timeouts implementados para evitar bloqueos permanentes
+5. **Sin modificar backend**: Compatible con el backend existente
+
+### 🔄 Flujo de Ejecución No Bloqueante
+
+1. **Iniciar consulta**: `iniciarConsultaComandos()` inicia una solicitud HTTP pero no espera respuesta
+2. **Procesar respuesta**: En cada ciclo del `loop()`, `manejarConsultaHTTP()` verifica si hay respuesta
+3. **Continuar movimiento**: Los motores siguen moviéndose mientras se espera la respuesta HTTP
+4. **Manejo de timeout**: Si la solicitud HTTP no responde en 3 segundos, se cancela y se libera
+
+## PROBLEMA 3: PUT Endpoint No Persistía Datos
 
 ### 🔧 Problemas Identificados y Corregidos
 
